@@ -1,0 +1,41 @@
+security:
+    password_hashers:
+        # Argon2id e não bcrypt: bcrypt resiste a ataque por CPU, mas GPUs e
+        # ASICs o quebram bem mais rápido. Argon2id é `memory-hard` — exige
+        # memória, que é cara de paralelizar em hardware dedicado.
+        Lugar\Infrastructure\Seguranca\UsuarioAutenticado:
+            algorithm: auto
+
+    providers:
+        usuarios:
+            id: Lugar\Infrastructure\Seguranca\ProvedorDeUsuarios
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        # Cadastro e login não exigem token — é onde o token nasce.
+        publico:
+            pattern: ^/api/auth/(cadastro|login|refresh)
+            security: false
+
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: usuarios
+            jwt: ~
+
+    access_control:
+        # A vitrine é pública: quem ainda não tem conta precisa ver os eventos.
+        - { path: ^/api/eventos, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/organizador, roles: ROLE_ORGANIZADOR }
+
+when@test:
+    security:
+        password_hashers:
+            # Nos testes o custo do Argon2id domina o tempo da suíte sem provar
+            # nada — o algoritmo já é exercitado em produção.
+            Lugar\Infrastructure\Seguranca\UsuarioAutenticado:
+                algorithm: plaintext
+                ignore_case: false

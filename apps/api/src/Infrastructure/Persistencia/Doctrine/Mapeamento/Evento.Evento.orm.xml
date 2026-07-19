@@ -14,6 +14,10 @@
     <entity name="Lugar\Domain\Evento\Evento" table="evento">
         <id name="id" type="evento_id"/>
 
+        <!-- O vínculo que o EventoVoter consulta (ADR-004). Por identidade,
+             nunca por associação: carregar um evento não traz o usuário. -->
+        <field name="organizadorId" column="organizador_id" type="usuario_id"/>
+
         <field name="titulo" type="string" length="200"/>
         <field name="local" type="string" length="200"/>
         <field name="cidade" type="string" length="120"/>

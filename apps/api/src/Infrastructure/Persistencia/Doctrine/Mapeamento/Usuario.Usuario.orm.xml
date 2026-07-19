@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="Lugar\Domain\Usuario\Usuario" table="usuario">
+        <unique-constraints>
+            <unique-constraint name="uniq_usuario_email" columns="email"/>
+        </unique-constraints>
+
+        <id name="id" type="usuario_id"/>
+        <field name="email" type="string" length="180"/>
+        <field name="senhaHash" column="senha_hash" type="string" length="255"/>
+        <field name="nome" type="string" length="120"/>
+        <field name="criadoEm" column="criado_em" type="datetime_immutable"/>
+
+        <!--
+          Papéis acumuláveis (ADR-004). Guardados como array de strings — no
+          Postgres, uma coluna TEXT com serialização do Doctrine. Simples e
+          suficiente: a lista tem no máximo três itens e nunca é consultada
+          por SQL, sempre carregada junto do usuário.
+        -->
+        <field name="papeis" type="json"/>
+    </entity>
+</doctrine-mapping>

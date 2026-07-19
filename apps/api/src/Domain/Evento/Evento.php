@@ -6,6 +6,7 @@ namespace Lugar\Domain\Evento;
 
 use Lugar\Domain\Evento\Excecao\EventoComVendasNaoPodeSerExcluido;
 use Lugar\Domain\Reserva\Reserva;
+use Lugar\Domain\Usuario\UsuarioId;
 
 /**
  * Raiz de agregado. Dados de apresentação, data, local e status de publicação.
@@ -15,6 +16,12 @@ class Evento
 {
     private function __construct(
         public readonly EventoId $id,
+        /**
+         * Quem criou o evento. É o vínculo que o EventoVoter consulta — papel
+         * ROLE_ORGANIZADOR diz que pode organizar, este campo diz o quê
+         * (ADR-004).
+         */
+        public readonly UsuarioId $organizadorId,
         private string $titulo,
         private string $local,
         private string $cidade,
@@ -27,6 +34,7 @@ class Evento
 
     public static function criar(
         EventoId $id,
+        UsuarioId $organizadorId,
         string $titulo,
         string $local,
         string $cidade,
@@ -42,6 +50,7 @@ class Evento
 
         return new self(
             $id,
+            $organizadorId,
             $titulo,
             $local,
             $cidade,
@@ -104,6 +113,12 @@ class Evento
                 ),
             );
         }
+    }
+
+    /** O vínculo que autoriza — não o papel. Ver ADR-004. */
+    public function pertenceA(UsuarioId $usuarioId): bool
+    {
+        return $this->organizadorId->ehIgualA($usuarioId);
     }
 
     public function estaPublicado(): bool

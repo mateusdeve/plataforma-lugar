@@ -17,6 +17,11 @@ use Lugar\Domain\Lote\Excecao\EstoqueInsuficiente;
 use Lugar\Domain\Lote\Lote;
 use Lugar\Domain\Lote\LoteId;
 use Lugar\Domain\Lote\RepositorioDeLotes;
+use Lugar\Domain\Usuario\Papel;
+use Lugar\Domain\Usuario\RepositorioDeUsuarios;
+use Lugar\Domain\Usuario\Usuario;
+use Lugar\Domain\Usuario\UsuarioId;
+use Lugar\Domain\Usuario\HashDeSenha;
 use Lugar\Kernel;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -209,8 +214,25 @@ final class ConcorrenciaTest extends KernelTestCase
         \assert($eventos instanceof RepositorioDeEventos);
         \assert($lotes instanceof RepositorioDeLotes);
 
+        $usuarios = self::getContainer()->get(RepositorioDeUsuarios::class);
+        \assert($usuarios instanceof RepositorioDeUsuarios);
+        $hash = self::getContainer()->get(HashDeSenha::class);
+        \assert($hash instanceof HashDeSenha);
+
+        $organizador = Usuario::cadastrar(
+            new UsuarioId('organizador-concorrencia'),
+            'organizador@email.com',
+            'senha-bem-longa',
+            'Rafael',
+            $hash,
+            new \DateTimeImmutable(),
+            [Papel::ORGANIZADOR],
+        );
+        $usuarios->salvar($organizador);
+
         $evento = Evento::criar(
             new EventoId(self::EVENTO_ID),
+            $organizador->id,
             'Evento de concorrência',
             'Teatro B32',
             'São Paulo',
@@ -270,5 +292,6 @@ final class ConcorrenciaTest extends KernelTestCase
         $conexao->executeStatement('DELETE FROM reserva');
         $conexao->executeStatement('DELETE FROM lote');
         $conexao->executeStatement('DELETE FROM evento');
+        $conexao->executeStatement('DELETE FROM usuario');
     }
 }

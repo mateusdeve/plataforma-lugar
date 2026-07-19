@@ -10,6 +10,7 @@ doctrine:
             lote_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\LoteIdType
             reserva_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\ReservaIdType
             ingresso_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\IngressoIdType
+            usuario_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\UsuarioIdType
             codigo_ingresso: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\CodigoIngressoType
 
     orm:

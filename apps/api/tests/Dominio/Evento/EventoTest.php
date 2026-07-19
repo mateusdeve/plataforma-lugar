@@ -8,6 +8,7 @@ use Lugar\Domain\Evento\Evento;
 use Lugar\Domain\Evento\EventoId;
 use Lugar\Domain\Evento\Excecao\EventoComVendasNaoPodeSerExcluido;
 use Lugar\Domain\Evento\StatusDoEvento;
+use Lugar\Domain\Usuario\UsuarioId;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +20,7 @@ final class EventoTest extends TestCase
     {
         return Evento::criar(
             new EventoId('evento-1'),
+            new UsuarioId('rafael'),
             'FrontZ Conf 2026',
             'Teatro B32',
             'São Paulo',

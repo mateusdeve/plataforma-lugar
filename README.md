@@ -73,6 +73,16 @@ Removendo o `LockMode::PESSIMISTIC_WRITE` do repositório, o mesmo teste
 registra **cinco** vendas para um lugar. É o bug que o projeto existe para
 impedir, e o teste o pega.
 
+### O segundo teste que importa
+
+`tests/Dominio/Usuario/AutorizacaoTest.php` prova que um organizador
+**autenticado, com o papel correto**, não alcança o evento de outro
+organizador. Papel diz que a pessoa pode organizar; não diz *quais* eventos —
+quem responde isso é o vínculo (`evento.organizador_id` e `evento_operador`).
+
+É a falha de autorização mais comum que existe, e passa despercebida porque a
+tela nunca oferece o link. A API não sabe o que a tela oferece.
+
 ## Estado atual
 
 **Pronto**
@@ -82,6 +92,7 @@ impedir, e o teste o pega.
 - **Domínio puro** — `Lote`, `Reserva`, `Ingresso`, `Evento` e Value Objects, sem framework. 45 testes em 13ms
 - **Lock pessimista e o teste de concorrência** — 10 processos disputando 1 lugar, exatamente 1 vence
 - Esquema com `CHECK (quantidade_vendida <= quantidade_total)` e índice parcial na query mais quente
+- **Autorização por vínculo** — `Usuario`, papéis acumuláveis, `EventoVoter` e `PortariaVoter`
 - Ambiente local completo em `docker compose`, e CI com os três portões
 - Contador de reserva derivado do servidor, não de timer local
 - Os dois 409 do sistema tratados como coisas diferentes, pelo campo `type` do RFC 7807
@@ -90,7 +101,7 @@ impedir, e o teste o pega.
 
 **Falta**
 
-- Autenticação e autorização (cadastro, login, Voters)
+- Endpoints de cadastro/login e as telas de autenticação no front
 - Ligar o front na API: reservas, pagamento, painel e portaria de verdade
 - Deploy: droplet, DNS e pipeline para o GHCR
 

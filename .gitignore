@@ -83,3 +83,8 @@ yarn-debug.log*
 # Gerados, não escritos.
 /apps/api/.deptrac.cache
 /apps/api/config/reference.php
+
+# Chaves JWT. O recipe do Lexik já ignora em apps/api/.gitignore, mas o Flex
+# reescreve aquele arquivo a cada comando composer. Aqui a regra é durável.
+/apps/api/config/jwt/
+*.pem

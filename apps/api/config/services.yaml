@@ -41,6 +41,9 @@ services:
     Lugar\Domain\Lote\RepositorioDeLotes: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeLotes'
     Lugar\Domain\Reserva\RepositorioDeReservas: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeReservas'
     Lugar\Domain\Ingresso\RepositorioDeIngressos: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeIngressos'
+    Lugar\Domain\Usuario\RepositorioDeUsuarios: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeUsuarios'
+    Lugar\Domain\Usuario\HashDeSenha: '@Lugar\Infrastructure\Seguranca\HashDeSenhaSymfony'
+    Lugar\Domain\Evento\EscalaDePortaria: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\EscalaDePortariaDoctrine'
 
 when@test:
     services:
@@ -57,4 +60,12 @@ when@test:
 
         Lugar\Domain\Evento\RepositorioDeEventos:
             alias: Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeEventos
+            public: true
+
+        Lugar\Domain\Usuario\RepositorioDeUsuarios:
+            alias: Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeUsuarios
+            public: true
+
+        Lugar\Domain\Usuario\HashDeSenha:
+            alias: Lugar\Infrastructure\Seguranca\HashDeSenhaSymfony
             public: true
