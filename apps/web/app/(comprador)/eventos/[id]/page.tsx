@@ -5,6 +5,11 @@ import { formatarDataEvento } from "@/lib/formato";
 import { SeletorDeLotes } from "@/components/seletor-de-lotes";
 import { TIPO_ERRO } from "@/lib/tipos";
 
+/* Dinâmica pelo mesmo motivo da vitrine: o estoque por lote muda a cada
+   reserva criada ou expirada. */
+export const dynamic = "force-dynamic";
+
+
 /*
   design/comprador/02-evento.html — GET /api/eventos/{id}
   design/comprador/03-evento-esgotou-409.html — mesmo componente, com o banner

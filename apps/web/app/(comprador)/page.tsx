@@ -4,6 +4,15 @@ import { chipDeData, formatarDataEvento, formatarDinheiro } from "@/lib/formato"
 import { Pill } from "@/components/pill";
 import type { EventoResumo } from "@/lib/tipos";
 
+/*
+  Renderização dinâmica, não estática.
+  A vitrine mostra disponibilidade que muda a cada reserva — pré-renderizar no
+  build congelaria o estoque no instante da publicação. O PRD §6.4 permite até
+  5s de defasagem, e é a própria API que os concede via Cache-Control.
+*/
+export const dynamic = "force-dynamic";
+
+
 /* design/comprador/01-vitrine.html — GET /api/eventos */
 
 export const metadata = {

@@ -1,3 +1,4 @@
+import { api } from "./api";
 import type {
   EventoDetalhe,
   EventoResumo,
@@ -11,17 +12,18 @@ import type {
   ─────────────────────────────────────────────────────────────────────────────
   COSTURA COM A API
 
-  Este é o único arquivo que sabe de onde os dados vêm. Hoje devolve os
-  exemplos do handoff de design; nas fases 4 a 7 do PLAN.md cada função vira
-  um fetch para a API Symfony e nada mais no front muda — as assinaturas já
-  são assíncronas e os tipos já são os do contrato.
+  Este é o único arquivo que sabe de onde os dados vêm. As funções abaixo já
+  chamam a API Symfony; o que sobrou de exemplo estático são as telas ainda
+  não ligadas (painel do organizador e portaria), marcadas uma a uma.
 
-    buscarEventos()        → GET  /api/eventos
-    buscarEvento(id)       → GET  /api/eventos/{id}
-    buscarReserva(id)      → GET  /api/reservas/{id}
-    buscarIngresso(codigo) → GET  /api/ingressos/{codigo}
-    buscarPainel(eventoId) → GET  /api/organizador/eventos/{id}/painel
-    validarIngresso(...)   → POST /api/ingressos/{codigo}/utilizar
+    buscarEventos()        → GET  /api/eventos            ✔ ligado
+    buscarEvento(id)       → GET  /api/eventos/{id}       ✔ ligado
+    buscarReserva(id)      → GET  /api/reservas/{id}      ✔ ligado
+    criarReserva(...)      → POST /api/reservas           ✔ ligado
+    cancelarReserva(id)    → DELETE /api/reservas/{id}    ✔ ligado
+    buscarIngresso(codigo) → GET  /api/ingressos/{codigo} ○ fase 5
+    buscarPainel(eventoId) → GET  /api/organizador/…      ○ fase 6
+    validarIngresso(...)   → POST /api/ingressos/…        ○ fase 7
   ─────────────────────────────────────────────────────────────────────────────
 */
 
@@ -147,21 +149,42 @@ const EVENTOS: EventoDetalhe[] = [
 // ── leitura ─────────────────────────────────────────────────────────────────
 
 export async function buscarEventos(): Promise<EventoResumo[]> {
-  // A listagem devolve menos que o detalhe: sem descrição, sem lotes.
-  return EVENTOS.map((evento) => ({
-    id: evento.id,
-    titulo: evento.titulo,
-    local: evento.local,
-    cidade: evento.cidade,
-    iniciaEm: evento.iniciaEm,
-    situacao: evento.situacao,
-    restantes: evento.restantes,
-    precoMinimo: evento.precoMinimo,
-  }));
+  const { itens } = await api.get<{ itens: EventoResumo[] }>("/api/eventos");
+  return itens;
 }
 
 export async function buscarEvento(id: string): Promise<EventoDetalhe | null> {
-  return EVENTOS.find((e) => e.id === id) ?? null;
+  try {
+    return await api.get<EventoDetalhe>(`/api/eventos/${id}`);
+  } catch {
+    // 404 vira null e a página chama notFound(); qualquer outra falha também
+    // resulta em "evento não encontrado", que é mais honesto na tela do que
+    // uma stack trace.
+    return null;
+  }
+}
+
+/** POST /api/reservas — o caminho que passa pelo lock pessimista. */
+export async function criarReserva(entrada: {
+  loteId: string;
+  quantidade: number;
+  compradorEmail: string;
+  chaveDeIdempotencia: string;
+}): Promise<Reserva> {
+  return api.post<Reserva>(
+    "/api/reservas",
+    {
+      loteId: entrada.loteId,
+      quantidade: entrada.quantidade,
+      compradorEmail: entrada.compradorEmail,
+    },
+    // A chave repetida numa retentativa devolve a MESMA reserva (PRD §6.2).
+    { headers: { "Idempotency-Key": entrada.chaveDeIdempotencia } },
+  );
+}
+
+export async function cancelarReserva(id: string): Promise<void> {
+  await api.remover(`/api/reservas/${id}`);
 }
 
 /**
@@ -170,21 +193,11 @@ export async function buscarEvento(id: string): Promise<EventoDetalhe | null> {
  * derivar — é exatamente o que a API fará ao criar a reserva.
  */
 export async function buscarReserva(id: string): Promise<Reserva | null> {
-  const evento = EVENTOS[0];
-  const lote = evento.lotes[1];
-  const quantidade = 2;
-  const segundosRestantes = 8 * 60 + 47;
-
-  return {
-    id,
-    eventoId: evento.id,
-    loteId: lote.id,
-    quantidade,
-    status: "PENDENTE",
-    expiraEm: new Date(Date.now() + segundosRestantes * 1000).toISOString(),
-    segundosRestantes,
-    total: { centavos: lote.preco.centavos * quantidade, moeda: "BRL" },
-  };
+  try {
+    return await api.get<Reserva>(`/api/reservas/${id}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function buscarIngresso(codigo: string): Promise<Ingresso | null> {
