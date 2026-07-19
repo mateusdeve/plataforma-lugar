@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Ambiente local completo. O PRD §14 exige que quem clonar o repositório
+# consiga rodar tudo com um `docker compose up`, em 90 segundos de leitura.
+#
+# Produção NÃO usa este arquivo: lá o EasyPanel puxa imagens prontas do GHCR
+# (ADR-003). Este compose é o "staging local" citado no PRD §7.3.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: lugar
+
+services:
+  banco:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lugar
+      POSTGRES_PASSWORD: lugar
+      POSTGRES_DB: lugar
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+    ports:
+      # Exposto SÓ no localhost da máquina de desenvolvimento, para inspeção
+      # com cliente de banco. Em produção o Postgres não tem porta pública em
+      # hipótese alguma — PRD §7.3.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      # Os outros serviços esperam este teste passar. Sem isso, a API sobe
+      # antes do banco aceitar conexão e morre no primeiro request.
+      test: ["CMD-SHELL", "pg_isready -U lugar -d lugar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+      target: dev
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+      DATABASE_URL: postgresql://lugar:lugar@banco:5432/lugar?serverVersion=16&charset=utf8
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=true
+      CORS_ORIGEM_PERMITIDA: http://localhost:3000
+    volumes:
+      # Código montado do host: editar um arquivo reflete sem rebuild.
+      - ./apps/api:/app
+      # vendor/ fica dentro do container. Sem esta linha, o mount do host
+      # apagaria o vendor instalado na imagem.
+      - vendor-api:/app/vendor
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      banco:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./apps/api
+      target: dev
+    command: php bin/console messenger:consume async -vv
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: postgresql://lugar:lugar@banco:5432/lugar?serverVersion=16&charset=utf8
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=true
+    volumes:
+      - ./apps/api:/app
+      - vendor-api:/app/vendor
+    depends_on:
+      banco:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  dados-postgres:
+  vendor-api:

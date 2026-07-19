@@ -1,0 +1,50 @@
+# CI do front — PLAN.md tarefa 0.5.
+#
+# A Vercel já constrói o app a cada push; este workflow existe para que uma PR
+# com erro de tipo ou lint falhe ANTES do deploy de preview, e para que o
+# resultado apareça no próprio PR.
+
+name: Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web.yml'
+
+defaults:
+  run:
+    working-directory: apps/web
+
+jobs:
+  qualidade:
+    name: Tipos, lint e build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      # `npm ci` e não `npm install`: instala exatamente o que está no
+      # lockfile e falha se ele estiver dessincronizado do package.json.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

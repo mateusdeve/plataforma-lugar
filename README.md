@@ -26,27 +26,44 @@ Documentos completos: [PRD](PRD.md) (o quê e por quê) e [PLAN](PLAN.md) (em qu
 | Camada | Tecnologia |
 | ------ | ---------- |
 | Front | Next.js (App Router), TypeScript, Tailwind — na Vercel |
-| API | PHP 8.3, Symfony 7, Doctrine — no EasyPanel |
+| API | PHP 8.4, Symfony 8.1, Doctrine ORM 3 — no EasyPanel |
 | Banco | PostgreSQL 16, sem porta pública |
 | Fila | Symfony Messenger |
 
 O `Domain/` da API não importa `Symfony\` nem `Doctrine\`, e um teste de arquitetura quebra o CI se alguém tentar.
 
-## Rodando o front
+## Rodando
+
+Tudo de uma vez — banco, API e worker:
 
 ```bash
-cd apps/web
-npm install
-npm run dev
+docker compose up -d
+curl http://localhost:8000/health
+```
+
+O front, separado:
+
+```bash
+cd apps/web && npm install && npm run dev
 ```
 
 `http://localhost:3000/guia` lista todas as telas com a origem no design e o endpoint que cada uma vai consumir.
+
+### Os três portões de qualidade
+
+```bash
+docker compose exec api composer check
+```
+
+Roda, nesta ordem: **camadas** (Deptrac), **tipos** (PHPStan nível 9) e **testes** (PHPUnit).
 
 ## Estado atual
 
 **Pronto**
 
 - Front completo — 9 rotas cobrindo as telas dos três perfis (comprador, organizador, portaria)
+- API de pé: Symfony 8.1 nas quatro camadas, `/health` verificando banco e fila
+- Ambiente local completo em `docker compose`, e CI com os três portões
 - Contador de reserva derivado do servidor, não de timer local
 - Os dois 409 do sistema tratados como coisas diferentes, pelo campo `type` do RFC 7807
 - Tipos derivados do contrato da API, não das telas
@@ -54,9 +71,9 @@ npm run dev
 
 **Falta**
 
-- `apps/api` — o domínio, a persistência e o **teste de concorrência**, que é o item mais importante do projeto
+- O domínio, a persistência e o **teste de concorrência**, que é o item mais importante do projeto
 - Autenticação e autorização (cadastro, login, Voters)
-- Infraestrutura: Docker Compose, CI, deploy
+- Deploy: droplet, DNS e pipeline para o GHCR
 
 A ordem de construção está em [PLAN.md §5](PLAN.md). O front foi feito fora de ordem, de propósito, e o [§2.1](PLAN.md) explica a decisão e o risco assumido.
 

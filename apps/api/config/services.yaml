@@ -1,0 +1,31 @@
+# Autowiring liga interface a implementação por tipo. As interfaces (portas)
+# vivem em Application/ ou Domain/; as implementações, em Infrastructure/.
+# É essa inversão que permite testar sem banco (fase 1 do PLAN.md).
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Toda classe que implementa a porta de verificação recebe a tag, e o caso
+    # de uso recebe todas de uma vez sem conhecer nenhuma. Acrescentar Redis ou
+    # S3 ao health check vira uma classe nova em Infrastructure/ — e mais nada.
+    #
+    # A tag é declarada AQUI, e não com um atributo `#[AutoconfigureTag]` na
+    # interface, porque o atributo é do Symfony e `Application/` não pode
+    # importar Symfony (regra do deptrac.yaml). Configuração de framework mora
+    # na configuração do framework.
+    _instanceof:
+        Lugar\Application\Saude\VerificadorDeDependencia:
+            tags: ['lugar.verificador_de_saude']
+
+    Lugar\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            # Entidades e Value Objects não são serviços — são dados com
+            # comportamento. Registrá-los no container seria erro de conceito.
+            - '../src/Domain/'
+
+    Lugar\Application\Saude\ConsultarSaude:
+        arguments:
+            $verificadores: !tagged_iterator lugar.verificador_de_saude

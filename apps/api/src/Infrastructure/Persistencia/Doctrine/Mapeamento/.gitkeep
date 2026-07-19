@@ -1,0 +1,3 @@
+Mapeamento ORM em XML. Fica aqui, e não junto das entidades, para que
+src/Domain/ não precise conhecer o Doctrine — ver deptrac.yaml e ADR-001.
+Preenchido na fase 2 do PLAN.md.

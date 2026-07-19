@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true">
+    <php>
+        <ini name="display_errors" value="1"/>
+        <ini name="error_reporting" value="-1"/>
+        <!--
+            `env` e não `server`: o container do docker-compose define
+            APP_ENV=dev como variável real, e o KernelTestCase lê $_ENV antes
+            de $_SERVER. Com `server`, a suíte rodaria no ambiente `dev` e o
+            `framework.test` nunca seria ligado.
+        -->
+        <env name="APP_ENV" value="test" force="true"/>
+        <env name="KERNEL_CLASS" value="Lugar\Kernel" force="true"/>
+        <server name="SHELL_VERBOSITY" value="-1"/>
+
+        <!-- ###+ symfony/framework-bundle ### -->
+        <env name="APP_ENV" value="dev"/>
+        <env name="APP_SECRET" value=""/>
+        <env name="APP_SHARE_DIR" value="var/share"/>
+        <!-- ###- symfony/framework-bundle ### -->
+
+        <!-- ###+ symfony/routing ### -->
+        <!-- Configure how to generate URLs in non-HTTP contexts, such as CLI commands. -->
+        <!-- See https://symfony.com/doc/current/routing.html#generating-urls-in-commands -->
+        <env name="DEFAULT_URI" value="http://localhost"/>
+        <!-- ###- symfony/routing ### -->
+
+        <!-- ###+ doctrine/doctrine-bundle ### -->
+        <!-- Format described at https://www.doctrine-project.org/projects/doctrine-dbal/en/latest/reference/configuration.html#connecting-using-a-url -->
+        <!-- IMPORTANT: You MUST configure your server version, either here or in config/packages/doctrine.yaml -->
+        <!--  -->
+        <!-- DATABASE_URL="sqlite:///%kernel.project_dir%/var/data_%kernel.environment%.db" -->
+        <!-- DATABASE_URL="mysql://app:!ChangeMe!@127.0.0.1:3306/app?serverVersion=8.0.32&charset=utf8mb4" -->
+        <!-- DATABASE_URL="mysql://app:!ChangeMe!@127.0.0.1:3306/app?serverVersion=10.11.2-MariaDB&charset=utf8mb4" -->
+        <env name="DATABASE_URL" value="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&amp;charset=utf8"/>
+        <!-- ###- doctrine/doctrine-bundle ### -->
+    </php>
+
+    <testsuites>
+        <!--
+            Duas suítes, separadas de propósito.
+
+            `dominio` não toca banco, rede nem framework: são as regras de
+            negócio puras (PRD §5, "cada regra deve ter um teste de unidade no
+            domínio, sem banco"). Roda em menos de um segundo.
+
+            `integracao` sobe o kernel e fala com Postgres de verdade — é onde
+            mora o teste de concorrência da fase 2.
+        -->
+        <testsuite name="dominio">
+            <directory>tests/Dominio</directory>
+        </testsuite>
+        <testsuite name="integracao">
+            <directory>tests/Integracao</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>

@@ -37,6 +37,10 @@ Três incoerências do PRD v1.0 ficam resolvidas aqui.
 
 **`quantidade_reservada` (PRD §4.1 vs §8).** O campo existe no agregado mas não na tabela. **Some dos dois.** O ADR-002 já estabelece que a verdade do estoque é a query de disponibilidade; manter um contador desnormalizado ao lado dela cria uma segunda verdade que só pode dessincronizar. O `Lote` guarda `quantidadeTotal` e `quantidadeVendida`; reservado é sempre calculado. Se um dia a leitura doer, aí sim se discute cache — com medição na mão.
 
+**Symfony 7 e PHP 8.3 (PRD §7.1).** O PRD foi escrito quando o Symfony 7 era atual. Na hora de instalar, o próprio Composer recusou o 7.2 por advisories de segurança, e a verificação mostrou que o estável é o **8.1**, que exige **PHP 8.4**.
+
+Fica o 8.1. O 7.4 LTS era a alternativa — suporte mais longo, PHP 8.2 — mas este é um projeto greenfield, sem restrição de legado, e não há razão para começar uma major atrás. O DoctrineBundle 3.2 já suporta Symfony 8, que era a única dúvida real.
+
 **RN-05 (máx. 2 reservas ativas por e-mail no mesmo evento).** Atravessa a fronteira do ADR-001: `Reserva` aponta para `Lote`, e `Evento` está acima disso. **Não é invariante de agregado.** Vira uma verificação na camada de aplicação, executada dentro da mesma transação da reserva, antes de adquirir o lock do lote — uma query que percorre `reserva → lote → evento`. Não recebe constraint de banco: a condição depende de tempo (`expira_em > NOW()`) e nenhum `UNIQUE` expressa isso. É a regra mais fraca do conjunto e o teste precisa deixar essa fraqueza explícita.
 
 ---

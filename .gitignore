@@ -60,3 +60,26 @@ Thumbs.db
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Resíduo dos recipes do Symfony Flex.
+#
+# O Flex reinstala estes arquivos a cada comando `composer`, então não adianta
+# apagá-los: são ignorados aqui, na raiz, que é onde ele não mexe.
+#
+# src/Entity, src/Repository e src/Controller vêm dos recipes do Doctrine e do
+# framework, e contradizem a arquitetura do projeto — as entidades vivem em
+# src/Domain/ e os controllers em src/UI/Http/Controller/ (ver deptrac.yaml).
+# ─────────────────────────────────────────────────────────────────────────────
+/apps/api/src/Entity/
+/apps/api/src/Repository/
+/apps/api/src/Controller/
+
+# O ambiente local é o docker-compose.yml da raiz. O recipe do Doctrine traz
+# um segundo compose, com outro Postgres e senha de exemplo.
+/apps/api/compose.yaml
+/apps/api/compose.override.yaml
+
+# Gerados, não escritos.
+/apps/api/.deptrac.cache
+/apps/api/config/reference.php

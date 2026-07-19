@@ -1,0 +1,11 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    # A API não tem sessão: a autenticação é por JWT + cookie de refresh
+    # (ADR-003/004). Sessão em API REST é estado onde não deveria haver.
+    session: false
+    php_errors:
+        log: true
+
+when@test:
+    framework:
+        test: true

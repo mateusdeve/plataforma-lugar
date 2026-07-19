@@ -1,0 +1,25 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+
+    orm:
+        naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
+        validate_xml_mapping: true
+        mappings:
+            # Mapeamento em XML, dentro de Infrastructure/, justamente para
+            # manter as entidades de Domain/ livres de atributos do Doctrine.
+            # Esta é a linha que faz a regra do Deptrac ser possível: se o
+            # mapeamento fosse por atributos PHP, as entidades precisariam
+            # importar `Doctrine\` e a fronteira cairia na primeira linha.
+            Domain:
+                type: xml
+                dir: '%kernel.project_dir%/src/Infrastructure/Persistencia/Doctrine/Mapeamento'
+                prefix: 'Lugar\Domain'
+                is_bundle: false
+
+when@test:
+    doctrine:
+        dbal:
+            # Banco separado para teste, para que a suíte possa truncar tabelas
+            # sem medo. O TEST_TOKEN permite rodar suítes em paralelo.
+            dbname_suffix: '_test%env(default::TEST_TOKEN)%'

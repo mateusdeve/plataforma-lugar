@@ -1,0 +1,81 @@
+# CI da API — PLAN.md tarefa 0.5.
+#
+# Três portões, do mais rápido ao mais lento, para que o retorno chegue cedo:
+# camadas → tipos → testes. O de camadas vem primeiro de propósito: é o que
+# impede o DDD de virar pasta vazia com nome bonito (PRD §13).
+
+name: API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api.yml'
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api.yml'
+
+defaults:
+  run:
+    working-directory: apps/api
+
+jobs:
+  qualidade:
+    name: Camadas, tipos e testes
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lugar
+          POSTGRES_PASSWORD: lugar
+          POSTGRES_DB: lugar
+        ports:
+          - 5432:5432
+        # Sem healthcheck, os testes começam antes do banco aceitar conexão.
+        options: >-
+          --health-cmd "pg_isready -U lugar -d lugar"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://lugar:lugar@127.0.0.1:5432/lugar?serverVersion=16&charset=utf8
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=true
+      APP_SECRET: ci_nao_e_segredo
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Instalar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, intl, opcache
+          coverage: none
+
+      - name: Instalar dependências
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: apps/api
+
+      # ── Portão 1: a arquitetura ─────────────────────────────────────────
+      # Falha se Domain/ importar Symfony ou Doctrine, ou se qualquer camada
+      # depender de uma que não lhe é permitida. Roda primeiro porque é o mais
+      # rápido e o mais fácil de violar sem perceber.
+      - name: Camadas (Deptrac)
+        run: composer camadas
+
+      # ── Portão 2: os tipos ──────────────────────────────────────────────
+      - name: Análise estática (PHPStan nível 9)
+        run: composer stan
+
+      # ── Portão 3: o comportamento ───────────────────────────────────────
+      # A suíte `dominio` não toca banco e roda em menos de um segundo;
+      # `integracao` fala com o Postgres de verdade — é onde vive o teste de
+      # concorrência da fase 2, que é o item mais importante do repositório.
+      - name: Testes
+        run: composer test

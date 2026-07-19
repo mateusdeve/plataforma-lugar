@@ -1,0 +1,17 @@
+framework:
+    messenger:
+        transports:
+            # Doctrine como transporte no MVP (PRD §7.1): uma peça a menos
+            # para operar. Trocar por AMQP depois é mudar esta linha.
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+
+        routing:
+            # Vazio de propósito. Os eventos de domínio (ReservaCriada,
+            # ReservaConfirmada, ReservaExpirada, LoteEsgotado,
+            # IngressoUtilizado) chegam na fase 1; só os que disparam e-mail
+            # vão para `async`. O resto é síncrono no MVP — PRD §4.4.

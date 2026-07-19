@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Teste de arquitetura.
+#
+# O PRD (§7.2) chama isto de "regra inegociável": se `Domain/` importar
+# `Doctrine\` ou `Symfony\`, a camada está errada. Uma regra que só existe no
+# README é uma intenção; aqui ela é um teste que quebra o CI.
+#
+# O risco que isto combate está no PRD §13: "DDD virar pasta vazia com nome
+# bonito". É fácil criar quatro diretórios e chamar de arquitetura hexagonal.
+# É o Deptrac que transforma a pasta em fronteira.
+#
+#   Domain          não depende de NADA — nem do framework, nem das outras camadas
+#   Application     depende só de Domain
+#   Infrastructure  implementa as interfaces de Domain; pode usar o framework
+#   UI              fala com Application; pode usar o framework
+#
+# Rodar: composer camadas
+# ─────────────────────────────────────────────────────────────────────────────
+
+deptrac:
+  paths:
+    - ./src
+
+  layers:
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/Domain/.*
+
+    - name: Application
+      collectors:
+        - type: directory
+          value: src/Application/.*
+
+    - name: Infrastructure
+      collectors:
+        - type: directory
+          value: src/Infrastructure/.*
+
+    - name: UI
+      collectors:
+        - type: directory
+          value: src/UI/.*
+
+    # Camadas de terceiros. Existem para poder proibi-las em Domain.
+    - name: Symfony
+      collectors:
+        - type: classNameRegex
+          value: '#^Symfony\\#'
+
+    - name: Doctrine
+      collectors:
+        - type: classNameRegex
+          value: '#^Doctrine\\#'
+
+  ruleset:
+    # O ponto do arquivo inteiro: a lista de dependências permitidas do
+    # domínio é vazia. Ele não conhece framework, ORM, nem as outras camadas.
+    Domain: ~
+
+    Application:
+      - Domain
+
+    Infrastructure:
+      - Domain
+      - Application
+      - Symfony
+      - Doctrine
+
+    UI:
+      - Application
+      - Domain
+      - Symfony
