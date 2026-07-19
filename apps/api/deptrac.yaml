@@ -53,6 +53,26 @@ deptrac:
         - type: classNameRegex
           value: '#^Doctrine\\#'
 
+    # Todo o resto de terceiros: Lexik, PSR, e o que vier depois.
+    #
+    # Existe pelo mesmo motivo das duas camadas acima — para poder PROIBIR em
+    # Domain. Sem ela, `--fail-on-uncovered` transforma cada dependência nova
+    # de infraestrutura em build vermelho, o que empurraria a próxima pessoa a
+    # desligar a flag. Uma regra que atrapalha demais acaba desligada, e aí não
+    # protege mais nada.
+    #
+    # A garantia que importa continua intacta: Domain não pode depender desta
+    # camada, então importar Lexik em src/Domain/ segue quebrando o build.
+    - name: Terceiros
+      collectors:
+        - type: bool
+          must:
+            - type: classNameRegex
+              value: '#^(Lexik|Psr|Symfony|Doctrine|Monolog|Composer)\\#'
+          must_not:
+            - type: classNameRegex
+              value: '#^(Symfony|Doctrine)\\#'
+
   ruleset:
     # O ponto do arquivo inteiro: a lista de dependências permitidas do
     # domínio é vazia. Ele não conhece framework, ORM, nem as outras camadas.
@@ -66,8 +86,10 @@ deptrac:
       - Application
       - Symfony
       - Doctrine
+      - Terceiros
 
     UI:
       - Application
       - Domain
       - Symfony
+      - Terceiros
