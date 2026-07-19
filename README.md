@@ -19,7 +19,14 @@ A reserva temporária resolve isso de forma humana — e transforma o problema e
 | [003](docs/adr/003-front-vercel-api-easypanel.md) | Front na Vercel, API no EasyPanel, mesmo domínio | *Same-site* é o que permite cookie `httpOnly` sem depender de cookie de terceiros |
 | [004](docs/adr/004-identidade-e-acesso.md) | Autorização por vínculo, não por papel | `ROLE_ORGANIZADOR` diz que pode organizar — não diz *quais* eventos |
 
-Documentos completos: [PRD](PRD.md) (o quê e por quê) e [PLAN](PLAN.md) (em que ordem e com qual critério de pronto).
+Documentos completos: [PRD](PRD.md) (o quê e por quê), [PLAN](PLAN.md) (em que ordem e com qual critério de pronto) e [ESTADO](ESTADO.md) (onde paramos, o que está no ar, e as armadilhas já encontradas).
+
+## Vendo funcionar
+
+**https://comprarbem.store** — a demonstração no ar.
+
+Entre com uma das contas em `/entrar` (senha `demonstracao123`):
+`rafael@lugar.demo` (organizador), `portaria@lugar.demo`, `ana@lugar.demo`.
 
 ## Stack
 
