@@ -26,6 +26,18 @@ services:
             # comportamento. Registrá-los no container seria erro de conceito.
             - '../src/Domain/'
 
+    Lugar\UI\Http\Cors:
+        arguments:
+            $origemPermitida: '%env(CORS_ORIGEM_PERMITIDA)%'
+
+    Lugar\Application\Usuario\AbrirSessao:
+        arguments:
+            $validadeDoRefreshEmDias: '%env(int:REFRESH_TTL_DIAS)%'
+
+    Lugar\Application\Usuario\EmissorDeAccessToken: '@Lugar\Infrastructure\Seguranca\EmissorJwt'
+    Lugar\Application\Usuario\UsuarioAtual: '@Lugar\Infrastructure\Seguranca\UsuarioAtualDoSymfony'
+    Lugar\Domain\Usuario\RepositorioDeTokens: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeTokens'
+
     Lugar\Application\Saude\ConsultarSaude:
         arguments:
             $verificadores: !tagged_iterator lugar.verificador_de_saude

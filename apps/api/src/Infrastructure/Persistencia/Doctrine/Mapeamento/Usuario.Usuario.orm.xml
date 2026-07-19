@@ -21,6 +21,6 @@
           suficiente: a lista tem no máximo três itens e nunca é consultada
           por SQL, sempre carregada junto do usuário.
         -->
-        <field name="papeis" type="json"/>
+        <field name="papeis" type="papeis"/>
     </entity>
 </doctrine-mapping>

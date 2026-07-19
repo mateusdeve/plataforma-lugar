@@ -40,6 +40,13 @@ services:
       DATABASE_URL: postgresql://lugar:lugar@banco:5432/lugar?serverVersion=16&charset=utf8
       MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=true
       CORS_ORIGEM_PERMITIDA: http://localhost:3000
+      # Chaves de desenvolvimento. Em produção vêm do EasyPanel como variável
+      # de ambiente, e os .pem nunca são versionados.
+      JWT_SECRET_KEY: /app/config/jwt/private.pem
+      JWT_PUBLIC_KEY: /app/config/jwt/public.pem
+      JWT_PASSPHRASE: dev_apenas_nao_use_em_producao
+      JWT_TTL_SEGUNDOS: 900
+      REFRESH_TTL_DIAS: 30
     volumes:
       # Código montado do host: editar um arquivo reflete sem rebuild.
       - ./apps/api:/app

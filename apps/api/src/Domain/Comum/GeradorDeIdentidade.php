@@ -6,6 +6,7 @@ namespace Lugar\Domain\Comum;
 
 use Lugar\Domain\Ingresso\CodigoIngresso;
 use Lugar\Domain\Reserva\ReservaId;
+use Lugar\Domain\Usuario\UsuarioId;
 
 /**
  * Porta de geração de identificadores e códigos.
@@ -17,6 +18,8 @@ use Lugar\Domain\Reserva\ReservaId;
 interface GeradorDeIdentidade
 {
     public function novaReservaId(): ReservaId;
+
+    public function novoUsuarioId(): UsuarioId;
 
     /** RN-09: aleatório e não adivinhável. Nada de sequencial. */
     public function novoCodigoDeIngresso(): CodigoIngresso;

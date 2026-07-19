@@ -1,0 +1,14 @@
+framework:
+    rate_limiter:
+        # PRD §6.3: 5 tentativas por minuto no login. A mesma fábrica é usada
+        # com duas chaves diferentes — IP e e-mail — no AuthController.
+        login:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
+
+        # PRD §6.3: 10 reservas por minuto por IP.
+        reservas:
+            policy: sliding_window
+            limit: 10
+            interval: '1 minute'

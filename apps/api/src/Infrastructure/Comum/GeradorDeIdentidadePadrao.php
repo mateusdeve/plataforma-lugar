@@ -7,6 +7,7 @@ namespace Lugar\Infrastructure\Comum;
 use Lugar\Domain\Comum\GeradorDeIdentidade;
 use Lugar\Domain\Ingresso\CodigoIngresso;
 use Lugar\Domain\Reserva\ReservaId;
+use Lugar\Domain\Usuario\UsuarioId;
 use Symfony\Component\Uid\Uuid;
 
 final readonly class GeradorDeIdentidadePadrao implements GeradorDeIdentidade
@@ -19,6 +20,11 @@ final readonly class GeradorDeIdentidadePadrao implements GeradorDeIdentidade
     public function novaReservaId(): ReservaId
     {
         return new ReservaId((string) Uuid::v7());
+    }
+
+    public function novoUsuarioId(): UsuarioId
+    {
+        return new UsuarioId((string) Uuid::v7());
     }
 
     /**
