@@ -7,9 +7,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # segredos e configuração de ambiente
+#
+# `.env` do Symfony É versionado — é convenção do framework e contém apenas
+# padrões de desenvolvimento, sem segredo. É o que faz `docker compose up`
+# funcionar num clone limpo (PRD §14). O que nunca entra é `.env.local`, que
+# é onde valores reais de máquina vivem.
 .env
-.env.*
-!.env.example
+!/apps/api/.env
+.env.local
+.env.*.local
 *.local
 
 # chaves e certificados
