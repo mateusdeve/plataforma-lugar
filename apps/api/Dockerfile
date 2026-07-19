@@ -48,27 +48,32 @@ EXPOSE 8000
 CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
 
 # ── produção ─────────────────────────────────────────────────────────────────
-FROM php:8.4-fpm-alpine AS prod
+#
+# FrankenPHP e não php-fpm + nginx.
+#
+# O fpm fala FastCGI, não HTTP — sozinho ele não atende o proxy do EasyPanel.
+# O arranjo clássico seria nginx na frente, o que significa um segundo
+# processo e um supervisor para cuidar dos dois dentro do mesmo container.
+#
+# O FrankenPHP junta servidor HTTP e runtime PHP num binário só: um processo,
+# sem supervisor, menos memória — o que importa num droplet de 2 GB dividido
+# com serviços de produção de terceiros.
+FROM dunglas/frankenphp:1-php8.4-alpine AS prod
 
-RUN apk add --no-cache postgresql-dev icu-dev linux-headers \
-    && docker-php-ext-install -j"$(nproc)" pdo_pgsql intl opcache \
-    && apk del linux-headers
+RUN install-php-extensions pdo_pgsql intl opcache
 
 WORKDIR /app
 
-# Configuração de opcache para produção: valida timestamp desligado, porque o
-# código não muda dentro de um container em execução. Trocar de versão é subir
-# uma imagem nova, não editar arquivo.
+# Opcache de produção: validate_timestamps desligado porque o código não muda
+# dentro de um container em execução. Trocar de versão é subir imagem nova.
 RUN { \
         echo 'opcache.validate_timestamps=0'; \
         echo 'opcache.max_accelerated_files=20000'; \
-        echo 'opcache.memory_consumption=192'; \
+        echo 'opcache.memory_consumption=128'; \
         echo 'opcache.interned_strings_buffer=16'; \
-    } > /usr/local/etc/php/conf.d/opcache-prod.ini
-
-RUN { \
         echo 'display_errors=Off'; \
         echo 'expose_php=Off'; \
+        echo 'memory_limit=96M'; \
     } > /usr/local/etc/php/conf.d/prod.ini
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -86,10 +91,29 @@ COPY . .
 
 ENV APP_ENV=prod APP_DEBUG=0
 
-# Roda como usuário sem privilégio. Processo de aplicação não precisa de root,
-# e um container comprometido rodando como root é um problema maior.
-RUN chown -R www-data:www-data /app
+# `:80` e não um nome de domínio: isso DESLIGA o HTTPS automático do Caddy.
+#
+# Quem termina TLS é o proxy do EasyPanel, que já provisiona Let's Encrypt.
+# Deixar o container também tentar emitir certificado dá dois problemas: ele
+# precisa escrever em /data/caddy (e não roda como root) e passaria a
+# competir com o proxy pelo desafio ACME.
+ENV SERVER_NAME=:80
+
+# Quantos workers PHP o servidor mantém. Quatro cabem com folga em 256 MB e
+# dão previsibilidade — importa mais que elasticidade em servidor dividido.
+ENV FRANKENPHP_CONFIG="worker ./public/index.php 4"
+
+# O Caddy escreve estado em /data e /config mesmo sem TLS.
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint \
+    && mkdir -p var /data /config \
+    && chown -R www-data:www-data /app /data /config
+
+# Processo de aplicação não precisa de root. Um container comprometido
+# rodando como root é um problema maior que o mesmo container sem privilégio.
 USER www-data
 
-EXPOSE 9000
-CMD ["php-fpm"]
+EXPOSE 80
+
+ENTRYPOINT ["entrypoint"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]

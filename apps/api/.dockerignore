@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Sem este arquivo, o `COPY . .` do Dockerfile leva TUDO do diretório para a
+# imagem — inclusive o vendor/ da máquina de quem construiu, sobrescrevendo o
+# que o composer acabou de instalar no estágio anterior.
+#
+# Foi exatamente o que aconteceu aqui: a imagem subia com um vendor defasado,
+# sem o SecurityBundle, e quebrava no boot com "class not found". O sintoma
+# não tinha relação nenhuma com a causa.
+#
+# Há um segundo motivo, mais grave: sem esta lista, qualquer arquivo local
+# entra na imagem publicada. Um .env.local com credenciais de produção, uma
+# chave .pem, um dump de banco — tudo iria junto para um registry público.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Instalado dentro da imagem, no estágio `dependencias`. Nunca vem do host.
+vendor/
+
+# Cache e logs da máquina local. Cache de dev dentro de uma imagem de produção
+# faz o Symfony carregar container compilado para o ambiente errado.
+var/
+
+# ── segredos ─────────────────────────────────────────────────────────────
+.env.local
+.env.*.local
+config/jwt/
+*.pem
+*.key
+
+# ── ruído ────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+compose.yaml
+compose.override.yaml
+tests/
+.phpunit.result.cache
+.deptrac.cache
+phpunit.xml.dist
+phpstan.neon
+deptrac.yaml

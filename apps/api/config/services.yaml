@@ -36,6 +36,7 @@ services:
 
     Lugar\Application\Usuario\EmissorDeAccessToken: '@Lugar\Infrastructure\Seguranca\EmissorJwt'
     Lugar\Application\Usuario\UsuarioAtual: '@Lugar\Infrastructure\Seguranca\UsuarioAtualDoSymfony'
+    Lugar\Application\Consulta\ConsultaDeEventos: '@Lugar\Infrastructure\Consulta\ConsultaDoctrineDeEventos'
     Lugar\Domain\Usuario\RepositorioDeTokens: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeTokens'
 
     Lugar\Application\Saude\ConsultarSaude:

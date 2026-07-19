@@ -1,0 +1,118 @@
+# Deploy da API — PLAN.md tarefa 0.7.
+#
+# O droplet NUNCA compila nada (ADR-003 e PRD §7.3). Três razões:
+#
+#   - o build consome memória suficiente para derrubar um droplet pequeno, e é
+#     o mesmo droplet onde mora o Postgres, o serviço que não pode cair
+#   - build no CI é reprodutível: mesma entrada, mesma imagem
+#   - rollback vira troca de tag, não rebuild
+#
+# Este workflow constrói, publica no GHCR e avisa o EasyPanel para puxar.
+
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/deploy-api.yml'
+  # Permite refazer o deploy da mesma imagem sem um commit novo.
+  workflow_dispatch:
+
+concurrency:
+  # Dois deploys simultâneos rodariam migrations em paralelo. Um de cada vez.
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  IMAGEM: ghcr.io/${{ github.repository }}/api
+
+jobs:
+  publicar:
+    name: Construir e publicar no GHCR
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Definir a tag
+        id: meta
+        # A tag é o SHA do commit, não `latest`. É o que torna o rollback
+        # possível: cada deploy tem um identificador imutável, e voltar é
+        # apontar para a tag anterior.
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Autenticar no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir e publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          # O estágio `prod`: PHP-FPM, opcache com validate_timestamps=0,
+          # sem dependências de desenvolvimento e rodando sem privilégio.
+          target: prod
+          push: true
+          tags: |
+            ${{ env.IMAGEM }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGEM }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # As MIGRATIONS não têm job aqui, e isso é deliberado.
+  #
+  # O plano original (PRD §7.3) era rodá-las como etapa do deploy, chamando o
+  # servidor de fora. Caiu porque o EasyPanel não tem API documentada — só uma
+  # tRPC interna, e chamada não documentada num pipeline que mexe em servidor
+  # com produção de terceiros é dívida que vence sozinha.
+  #
+  # Elas passaram para o entrypoint do container, protegidas por
+  # `pg_advisory_lock` — ver src/UI/Console/MigrarCommand.php. O problema real
+  # que o PRD queria evitar (dois containers migrando em paralelo) fica
+  # resolvido pelo banco, e não por orquestração externa.
+
+  implantar:
+    name: Subir a imagem nova
+    needs: publicar
+    runs-on: ubuntu-latest
+    if: vars.DEPLOY_ATIVO == 'true'
+
+    steps:
+      - name: Avisar o EasyPanel
+        env:
+          WEBHOOK: ${{ secrets.EASYPANEL_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::error::EASYPANEL_DEPLOY_WEBHOOK não configurado."
+            exit 1
+          fi
+          curl -fsS -X POST "$WEBHOOK"
+
+      - name: Confirmar que a API subiu
+        run: |
+          # O deploy não terminou quando o container sobe — terminou quando o
+          # /health responde. Verificar dependências, não existência.
+          for tentativa in $(seq 1 20); do
+            if curl -fsS --max-time 10 https://api.comprarbem.store/health | grep -q '"status":"ok"'; then
+              echo "API no ar."
+              exit 0
+            fi
+            echo "tentativa $tentativa/20…"
+            sleep 6
+          done
+          echo "::error::A API não respondeu /health com status ok."
+          exit 1
