@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Repositório PÚBLICO. Nada de segredo entra aqui.
+#
+# A regra abaixo ignora qualquer .env em qualquer nível, com uma exceção
+# explícita para .env.example — que deve conter as CHAVES sem os VALORES,
+# para que quem clonar saiba o que precisa configurar.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# segredos e configuração de ambiente
+.env
+.env.*
+!.env.example
+*.local
+
+# chaves e certificados
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa*
+*.jks
+
+# credenciais de ferramentas
+.vercel
+.wrangler
+.cloudflared
+auth.json
+
+# dependências
+node_modules/
+vendor/
+
+# artefatos de build
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# PHP / Symfony (apps/api, a partir da fase 0)
+/apps/api/var/
+/apps/api/public/bundles/
+/apps/api/.phpunit.result.cache
+/apps/api/composer.phar
+
+# banco e dumps — nunca versionar dado real
+*.sql
+*.sqlite
+*.dump
+/backups/
+
+# sistema e editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*

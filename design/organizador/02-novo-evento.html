@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Novo evento — lugar.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F1E8;color:#201A16;font-family:'Instrument Sans',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#C74316;text-decoration:none}a:hover{color:#A33310;text-decoration:underline}
+::placeholder{color:#B9AC9A}
+</style>
+</head>
+<!-- Perfil: Organizador · Tela 02 — Criação de evento com lotes e prazo de reserva (RN-01) | Referência de design hi-fi. Ver README.md na raiz do pacote. -->
+<body>
+<header style="background:#201A16;color:#FAF6F0">
+<div style="max-width:1120px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:14px">
+<a href="../comprador/01-vitrine.html" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;color:#FAF6F0;text-decoration:none">lugar<span style="color:#E8501F">.</span></a>
+<span style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#B08968;border:1px solid #4A4138;border-radius:99px;padding:4px 10px">Organizador</span>
+<div style="margin-left:auto;display:flex;align-items:center;gap:10px"><span style="font-size:14px;color:#C9BDA9">Rafael M.</span><span style="width:34px;height:34px;border-radius:50%;background:#E8501F;color:#FFF8F0;display:grid;place-items:center;font-weight:700;font-size:13px">RM</span></div></div>
+<div style="max-width:1120px;margin:0 auto;padding:0 24px;display:flex;gap:26px">
+<a href="01-painel.html" style="font-size:15px;font-weight:600;padding:10px 2px 12px 2px;text-decoration:none;color:#8B7F70;box-shadow:inset 0 -3px 0 transparent">Painel</a>
+<a href="02-novo-evento.html" style="font-size:15px;font-weight:600;padding:10px 2px 12px 2px;text-decoration:none;color:#FAF6F0;box-shadow:inset 0 -3px 0 #E8501F">Novo evento</a></div>
+</header>
+<div style="max-width:720px;margin:0 auto;padding:26px 24px 96px 24px">
+<h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:30px;letter-spacing:-0.7px;margin:0 0 6px 0">Novo evento</h1>
+<p style="font-size:15px;color:#7A6F63;margin:0 0 22px 0">Preencha o básico, defina os lotes e publique quando quiser.</p>
+<div style="background:#FFFFFF;border:1px solid #EDE4D5;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:16px">
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13.5px;font-weight:600;color:#5C5348">Título do evento
+<input placeholder="Ex.: Meetup de Engenharia — edição 12" style="padding:13px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:15px;background:#FDFBF7;color:#201A16"></label>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px"><label style="display:flex;flex-direction:column;gap:6px;font-size:13.5px;font-weight:600;color:#5C5348">Local
+<input placeholder="Teatro B32, São Paulo" style="padding:13px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:15px;background:#FDFBF7;color:#201A16"></label><label style="display:flex;flex-direction:column;gap:6px;font-size:13.5px;font-weight:600;color:#5C5348">Data e hora
+<input placeholder="12/09/2026 · 09h" style="padding:13px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:15px;background:#FDFBF7;color:#201A16"></label></div>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13.5px;font-weight:600;color:#5C5348">Descrição
+<textarea placeholder="Conte o que faz esse evento valer o sábado das pessoas." rows="3" style="padding:13px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:15px;background:#FDFBF7;color:#201A16;resize:vertical"></textarea></label>
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13.5px;font-weight:600;color:#5C5348">Prazo da reserva</span>
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:14px;padding:9px 14px;border-radius:99px;border:1.5px solid #E2D8C8;color:#7A6F63;cursor:pointer">5 min</span><span style="font-size:14px;font-weight:700;padding:9px 14px;border-radius:99px;border:1.5px solid #E8501F;color:#C74316;background:#FCEFE8;cursor:pointer">10 min</span><span style="font-size:14px;padding:9px 14px;border-radius:99px;border:1.5px solid #E2D8C8;color:#7A6F63;cursor:pointer">15 min</span><span style="font-size:14px;padding:9px 14px;border-radius:99px;border:1.5px solid #E2D8C8;color:#7A6F63;cursor:pointer">30 min</span></div>
+<span style="font-size:13px;color:#9C9080">Quanto tempo o comprador tem para pagar antes do lugar voltar ao estoque.</span></div>
+<div style="border-top:1px dashed #EDE4D5;padding-top:16px;display:flex;flex-direction:column;gap:10px">
+<span style="font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9C9080">Lotes</span>
+<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:10px;align-items:center">
+<input value="1º lote" placeholder="Nome do lote" style="padding:12px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:14.5px;background:#FDFBF7;color:#201A16">
+<input value="180" placeholder="Preço (R$)" style="padding:12px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:14.5px;background:#FDFBF7;color:#201A16">
+<input value="200" placeholder="Lugares" style="padding:12px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:14.5px;background:#FDFBF7;color:#201A16">
+<button style="width:38px;height:38px;border-radius:10px;border:1.5px solid #E2D8C8;background:#FFFFFF;color:#9C9080;font-size:16px;cursor:pointer">×</button></div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:10px;align-items:center">
+<input value="2º lote" placeholder="Nome do lote" style="padding:12px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:14.5px;background:#FDFBF7;color:#201A16">
+<input value="220" placeholder="Preço (R$)" style="padding:12px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:14.5px;background:#FDFBF7;color:#201A16">
+<input value="310" placeholder="Lugares" style="padding:12px 14px;border:1.5px solid #E2D8C8;border-radius:10px;font:inherit;font-size:14.5px;background:#FDFBF7;color:#201A16">
+<button style="width:38px;height:38px;border-radius:10px;border:1.5px solid #E2D8C8;background:#FFFFFF;color:#9C9080;font-size:16px;cursor:pointer">×</button></div>
+<span style="font-size:14px;font-weight:700;color:#C74316;cursor:pointer;width:fit-content">+ adicionar lote</span></div>
+<button style="width:100%;padding:17px;border:none;border-radius:14px;background:#E8501F;color:#FFF8F0;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:17px;cursor:pointer;margin-top:4px">Publicar evento</button>
+</div></div>
+</body>
+</html>

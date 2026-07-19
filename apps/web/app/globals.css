@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+/*
+  Tokens do design/README.md.
+  Nomes em português, iguais aos do handoff — quem abrir o design e o código
+  lê a mesma palavra nos dois lugares.
+*/
+@theme {
+  /* superfícies */
+  --color-papel: #faf6f0;
+  --color-papel-org: #f6f1e8;
+  --color-papel-input: #fdfbf7;
+  --color-tinta: #201a16;
+  --color-tinta-portaria: #16120e;
+
+  /* marca e ação */
+  --color-primaria: #e8501f;
+  --color-primaria-hover: #c74316;
+  --color-link-hover: #a33310;
+
+  /* estado */
+  --color-sucesso: #1e7a52;
+  --color-sucesso-bg: #e3f0e7;
+  --color-alerta: #b4690e;
+  --color-alerta-bg: #f7eeda;
+  --color-erro: #c0362c;
+
+  /* banner 409 estoque-insuficiente */
+  --color-conflito-bg: #fcefe8;
+  --color-conflito-borda: #f0cdba;
+  --color-conflito-titulo: #9e3412;
+  --color-conflito-texto: #7a4a32;
+
+  /* countdown: normal usa primaria; < 2min âmbar; < 30s vermelho */
+  --color-countdown-alerta: #e09b3d;
+  --color-countdown-alerta-texto: #f0c787;
+  --color-countdown-erro: #e4553f;
+  --color-countdown-erro-texto: #ff9b84;
+
+  /* linhas e texto */
+  --color-borda-card: #ede4d5;
+  --color-borda-input: #e2d8c8;
+  --color-borda-forte: #ddd2bf;
+  --color-borda-secao: #e7ddce;
+  --color-texto-2: #5c5348;
+  --color-texto-3: #7a6f63;
+  --color-texto-4: #9c9080;
+  --color-texto-tenue: #b3a794;
+  --color-desabilitado: #d8cdbc;
+  --color-placeholder: #b9ac9a;
+  --color-trilha: #f1eadd;
+  --color-neutro-bg: #eee7da;
+  --color-conversao-trilha: #ead9b8;
+
+  /* sobre tinta */
+  --color-trilha-escura: #3a322b;
+  --color-borda-tinta: #4a4138;
+  --color-borda-portaria: #2c251e;
+  --color-bronze: #b08968;
+  --color-creme: #c9bda9;
+  --color-nav-inativa: #8b7f70;
+  --color-off-white: #fff8f0;
+  --color-off-white-alto: #fffdf9;
+
+  /* tipografia */
+  --font-display: var(--fonte-display), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--fonte-corpo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--fonte-mono), ui-monospace, monospace;
+
+  /* raios */
+  --radius-card: 16px;
+  --radius-input: 10px;
+  --radius-botao: 14px;
+  --radius-bilhete: 20px;
+
+  /* sombras */
+  --shadow-countdown: 0 12px 28px rgba(32, 26, 22, 0.25);
+  --shadow-bilhete: 0 20px 44px rgba(32, 26, 22, 0.28);
+  --shadow-card-hover: 0 10px 24px rgba(60, 44, 20, 0.08);
+
+  /* animações */
+  --animate-sobe: sobe 0.35s ease both;
+  --animate-surge: surge 0.18s ease-out both;
+  --animate-pulso: pulso 1s ease-in-out infinite;
+}
+
+@keyframes sobe {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes surge {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulso {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+::placeholder {
+  color: var(--color-placeholder);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
