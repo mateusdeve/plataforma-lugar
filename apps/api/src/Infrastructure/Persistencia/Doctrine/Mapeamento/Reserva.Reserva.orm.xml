@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="Lugar\Domain\Reserva\Reserva" table="reserva">
+        <!--
+          O ÍNDICE MAIS IMPORTANTE DO SISTEMA NÃO ESTÁ AQUI.
+
+          A disponibilidade (ADR-002) soma as reservas PENDENTES não vencidas
+          de um lote, e isso roda dentro do lock, no caminho crítico de toda
+          reserva. O índice para essa query é PARCIAL — indexa só as linhas
+          PENDENTE, porque confirmadas e expiradas viram a maioria absoluta
+          com o tempo e nunca aparecem na consulta.
+
+          Índice parcial não é expressável no XSD do Doctrine. Ele é criado em
+          SQL na migration, que é onde detalhe de Postgres deve morar mesmo.
+          Ver Version20260719000000::up().
+        -->
+
+        <unique-constraints>
+            <!-- Idempotência garantida no banco, não só no código (PRD §6.2). -->
+            <unique-constraint name="uniq_reserva_idempotency" columns="idempotency_key"/>
+        </unique-constraints>
+
+        <id name="id" type="reserva_id"/>
+
+        <!-- Por identidade, nunca por objeto (ADR-001). -->
+        <field name="loteId" column="lote_id" type="lote_id"/>
+
+        <field name="compradorEmail" column="comprador_email" type="string" length="180"/>
+        <field name="quantidade" type="smallint"/>
+        <field name="criadaEm" column="criado_em" type="datetime_immutable"/>
+        <field name="expiraEm" column="expira_em" type="datetime_immutable"/>
+        <field name="status" type="string" length="20" enum-type="Lugar\Domain\Reserva\StatusDaReserva"/>
+        <field name="chaveDeIdempotencia" column="idempotency_key" type="string" length="64" nullable="true"/>
+
+        <embedded name="total" class="Lugar\Domain\Comum\Dinheiro" column-prefix="total_"/>
+    </entity>
+</doctrine-mapping>

@@ -29,3 +29,32 @@ services:
     Lugar\Application\Saude\ConsultarSaude:
         arguments:
             $verificadores: !tagged_iterator lugar.verificador_de_saude
+
+    # ── portas → adaptadores ──────────────────────────────────────────────
+    # As interfaces vivem em Domain/ e Application/; as implementações, em
+    # Infrastructure/. É aqui que as duas pontas se encontram, e é o único
+    # lugar do projeto que conhece as duas.
+    Lugar\Domain\Comum\Relogio: '@Lugar\Infrastructure\Comum\RelogioDoSistema'
+    Lugar\Domain\Comum\GeradorDeIdentidade: '@Lugar\Infrastructure\Comum\GeradorDeIdentidadePadrao'
+    Lugar\Application\Comum\Transacao: '@Lugar\Infrastructure\Persistencia\Doctrine\TransacaoDoctrine'
+    Lugar\Domain\Evento\RepositorioDeEventos: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeEventos'
+    Lugar\Domain\Lote\RepositorioDeLotes: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeLotes'
+    Lugar\Domain\Reserva\RepositorioDeReservas: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeReservas'
+    Lugar\Domain\Ingresso\RepositorioDeIngressos: '@Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeIngressos'
+
+when@test:
+    services:
+        # Em produção nada disto é público: os serviços chegam por injeção.
+        # O teste de concorrência precisa montar o cenário e por isso busca
+        # estes três no container — só no ambiente de teste, e explicitamente.
+        Lugar\Application\Reserva\CriarReserva:
+            autowire: true
+            public: true
+
+        Lugar\Domain\Lote\RepositorioDeLotes:
+            alias: Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeLotes
+            public: true
+
+        Lugar\Domain\Evento\RepositorioDeEventos:
+            alias: Lugar\Infrastructure\Persistencia\Doctrine\Repositorio\RepositorioDoctrineDeEventos
+            public: true

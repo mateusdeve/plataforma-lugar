@@ -74,8 +74,21 @@ jobs:
         run: composer stan
 
       # ── Portão 3: o comportamento ───────────────────────────────────────
-      # A suíte `dominio` não toca banco e roda em menos de um segundo;
-      # `integracao` fala com o Postgres de verdade — é onde vive o teste de
-      # concorrência da fase 2, que é o item mais importante do repositório.
-      - name: Testes
-        run: composer test
+      # A suíte `dominio` não toca banco e roda em menos de um segundo.
+      - name: Testes de domínio
+        run: vendor/bin/phpunit --testsuite dominio
+
+      # `integracao` precisa de Postgres de verdade: o teste de concorrência
+      # dispara processos PHP paralelos disputando a mesma linha, e lock
+      # pessimista é comportamento do banco, não do PHP. Não há como simular.
+      - name: Preparar banco de teste
+        env:
+          APP_ENV: test
+        run: |
+          php bin/console doctrine:database:create --if-not-exists --env=test
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test
+
+      # O item mais importante do repositório: com estoque 1 e N concorrentes,
+      # exatamente um vence. Se este passo falhar, o produto não existe.
+      - name: Testes de integração e concorrência
+        run: vendor/bin/phpunit --testsuite integracao

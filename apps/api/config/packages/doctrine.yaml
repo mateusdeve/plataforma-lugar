@@ -2,6 +2,16 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
 
+        # Tipos que convertem os Value Objects do domínio em colunas. É o que
+        # permite ao domínio ter LoteId e ReservaId como tipos distintos sem
+        # saber que Doctrine existe.
+        types:
+            evento_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\EventoIdType
+            lote_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\LoteIdType
+            reserva_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\ReservaIdType
+            ingresso_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\IngressoIdType
+            codigo_ingresso: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\CodigoIngressoType
+
     orm:
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         validate_xml_mapping: true

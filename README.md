@@ -57,12 +57,31 @@ docker compose exec api composer check
 
 Roda, nesta ordem: **camadas** (Deptrac), **tipos** (PHPStan nível 9) e **testes** (PHPUnit).
 
+### O teste que importa
+
+```bash
+docker compose exec api vendor/bin/phpunit --testsuite integracao
+```
+
+`tests/Integracao/Reserva/ConcorrenciaTest.php` dispara 10 processos PHP
+independentes, cada um com sua conexão, todos sincronizados para atacar a
+mesma linha no mesmo instante — contra um lote com **um** lugar.
+
+Exatamente um vence; nove recebem `estoque-insuficiente`.
+
+Removendo o `LockMode::PESSIMISTIC_WRITE` do repositório, o mesmo teste
+registra **cinco** vendas para um lugar. É o bug que o projeto existe para
+impedir, e o teste o pega.
+
 ## Estado atual
 
 **Pronto**
 
 - Front completo — 9 rotas cobrindo as telas dos três perfis (comprador, organizador, portaria)
-- API de pé: Symfony 8.1 nas quatro camadas, `/health` verificando banco e fila
+- API: Symfony 8.1 nas quatro camadas, `/health` verificando banco e fila
+- **Domínio puro** — `Lote`, `Reserva`, `Ingresso`, `Evento` e Value Objects, sem framework. 45 testes em 13ms
+- **Lock pessimista e o teste de concorrência** — 10 processos disputando 1 lugar, exatamente 1 vence
+- Esquema com `CHECK (quantidade_vendida <= quantidade_total)` e índice parcial na query mais quente
 - Ambiente local completo em `docker compose`, e CI com os três portões
 - Contador de reserva derivado do servidor, não de timer local
 - Os dois 409 do sistema tratados como coisas diferentes, pelo campo `type` do RFC 7807
@@ -71,8 +90,8 @@ Roda, nesta ordem: **camadas** (Deptrac), **tipos** (PHPStan nível 9) e **teste
 
 **Falta**
 
-- O domínio, a persistência e o **teste de concorrência**, que é o item mais importante do projeto
 - Autenticação e autorização (cadastro, login, Voters)
+- Ligar o front na API: reservas, pagamento, painel e portaria de verdade
 - Deploy: droplet, DNS e pipeline para o GHCR
 
 A ordem de construção está em [PLAN.md §5](PLAN.md). O front foi feito fora de ordem, de propósito, e o [§2.1](PLAN.md) explica a decisão e o risco assumido.

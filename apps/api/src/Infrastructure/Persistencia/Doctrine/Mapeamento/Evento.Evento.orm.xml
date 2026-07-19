@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Mapeamento em XML e não em atributos PHP.
+
+  Se fosse #[ORM\Entity] em cima da classe Evento, o domínio importaria
+  Doctrine\ e a regra do deptrac.yaml cairia na primeira entidade. O custo é
+  verbosidade; o retorno é um domínio que roda em teste sem banco algum.
+-->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="Lugar\Domain\Evento\Evento" table="evento">
+        <id name="id" type="evento_id"/>
+
+        <field name="titulo" type="string" length="200"/>
+        <field name="local" type="string" length="200"/>
+        <field name="cidade" type="string" length="120"/>
+        <field name="iniciaEm" column="inicia_em" type="datetime_immutable"/>
+        <field name="descricao" type="text"/>
+        <field name="prazoReservaMinutos" column="prazo_reserva_minutos" type="smallint"/>
+        <field name="status" type="string" length="20" enum-type="Lugar\Domain\Evento\StatusDoEvento"/>
+    </entity>
+</doctrine-mapping>

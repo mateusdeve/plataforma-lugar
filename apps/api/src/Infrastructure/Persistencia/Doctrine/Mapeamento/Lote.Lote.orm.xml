@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="Lugar\Domain\Lote\Lote" table="lote">
+        <id name="id" type="lote_id"/>
+
+        <!--
+          O evento é referenciado por IDENTIDADE, não por associação Doctrine
+          (ADR-001). Nada de ManyToOne: carregar um lote não deve arrastar o
+          evento inteiro, e agregados se conhecem por id.
+        -->
+        <field name="eventoId" column="evento_id" type="evento_id"/>
+
+        <field name="nome" type="string" length="120"/>
+        <field name="quantidadeTotal" column="quantidade_total" type="integer"/>
+        <field name="quantidadeVendida" column="quantidade_vendida" type="integer"/>
+
+        <!--
+          NÃO existe quantidade_reservada. A verdade sobre o reservado é a
+          query do ADR-002; um contador ao lado dela seria uma segunda verdade.
+        -->
+
+        <embedded name="precoUnitario" class="Lugar\Domain\Comum\Dinheiro" column-prefix="preco_"/>
+        <embedded name="janelaDeVenda" class="Lugar\Domain\Comum\Periodo" column-prefix="vendas_"/>
+    </entity>
+</doctrine-mapping>
