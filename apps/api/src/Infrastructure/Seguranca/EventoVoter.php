@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lugar\Infrastructure\Seguranca;
 
 use Lugar\Domain\Evento\Evento;
+use Lugar\Domain\Evento\Permissao;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -32,23 +33,22 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  */
 final class EventoVoter extends Voter
 {
-    public const string VER = 'EVENTO_VER';
-    public const string EDITAR = 'EVENTO_EDITAR';
-    public const string PUBLICAR = 'EVENTO_PUBLICAR';
-    public const string VER_PAINEL = 'EVENTO_VER_PAINEL';
-    public const string ESCALAR_PORTARIA = 'EVENTO_ESCALAR_PORTARIA';
-    public const string VALIDAR_INGRESSO = 'EVENTO_VALIDAR_INGRESSO';
+    /*
+     * `Permissao::VALIDAR_INGRESSO` está fora desta lista de propósito: quem a
+     * decide é o PortariaVoter, que já concede tanto ao dono quanto a quem
+     * está escalado. Ver o comentário na própria constante.
+     */
+    private const array ATRIBUTOS = [
+        Permissao::VER,
+        Permissao::EDITAR,
+        Permissao::PUBLICAR,
+        Permissao::VER_PAINEL,
+        Permissao::ESCALAR_PORTARIA,
+    ];
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return $subject instanceof Evento && \in_array($attribute, [
-            self::VER,
-            self::EDITAR,
-            self::PUBLICAR,
-            self::VER_PAINEL,
-            self::ESCALAR_PORTARIA,
-            self::VALIDAR_INGRESSO,
-        ], true);
+        return $subject instanceof Evento && \in_array($attribute, self::ATRIBUTOS, true);
     }
 
     /**
@@ -70,7 +70,7 @@ final class EventoVoter extends Voter
         $usuario = $autenticado->usuario;
 
         // Ver um evento PUBLICADO é público — é a vitrine.
-        if (self::VER === $attribute && $subject->estaPublicado()) {
+        if (Permissao::VER === $attribute && $subject->estaPublicado()) {
             return true;
         }
 

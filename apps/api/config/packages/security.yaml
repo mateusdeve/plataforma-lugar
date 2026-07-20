@@ -20,6 +20,19 @@ security:
             pattern: ^/api/auth/(cadastro|login|refresh)
             security: false
 
+        # ═══════════════════════════════════════════════════════════════════
+        # O webhook fica FORA do firewall porque quem o chama é uma máquina
+        # que não tem conta aqui — não existe token para ela apresentar.
+        #
+        # Isso não o deixa desprotegido: a credencial dele é a assinatura HMAC
+        # sobre o corpo, conferida antes de qualquer processamento
+        # (AssinaturaHmac). É autenticação, só que de mensagem em vez de
+        # usuário. Sem o segredo configurado, o endpoint recusa tudo.
+        # ═══════════════════════════════════════════════════════════════════
+        webhooks:
+            pattern: ^/api/webhooks/
+            security: false
+
         api:
             pattern: ^/api
             stateless: true
@@ -30,6 +43,22 @@ security:
         # A vitrine é pública: quem ainda não tem conta precisa ver os eventos.
         - { path: ^/api/eventos, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/organizador, roles: ROLE_ORGANIZADOR }
+
+        # ═══════════════════════════════════════════════════════════════════
+        # A porta exige estar autenticado — e SÓ isso, aqui.
+        #
+        # Quem valida ingresso é a portaria escalada OU o organizador dono, e
+        # essa decisão depende do EVENTO: nenhuma lista de papéis expressa
+        # "esta pessoa, nesta porta". Quem decide é o PortariaVoter, chamado
+        # pelo controller com o evento em mãos.
+        #
+        # Esta linha existe para a diferença entre 401 e 403 continuar
+        # verdadeira: sem ela, a requisição anônima chegaria ao Voter, seria
+        # recusada e viraria 403 — dizendo "você não pode" a quem sequer se
+        # identificou, e mandando alguém já logado tentar logar de novo.
+        # ═══════════════════════════════════════════════════════════════════
+        - { path: ^/api/ingressos, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/portaria, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:

@@ -6,6 +6,7 @@ namespace Lugar\Infrastructure\Seguranca;
 
 use Lugar\Domain\Evento\EscalaDePortaria;
 use Lugar\Domain\Evento\Evento;
+use Lugar\Domain\Evento\Permissao;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -30,15 +31,13 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  */
 final class PortariaVoter extends Voter
 {
-    public const string VALIDAR = 'PORTARIA_VALIDAR';
-
     public function __construct(private readonly EscalaDePortaria $escala)
     {
     }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return self::VALIDAR === $attribute && $subject instanceof Evento;
+        return Permissao::VALIDAR_INGRESSO === $attribute && $subject instanceof Evento;
     }
 
     /**

@@ -8,13 +8,27 @@ const ABAS = [
   { href: "/painel/eventos/novo", rotulo: "Novo evento" },
 ] as const;
 
+/**
+ * "Painel" segue aceso dentro de `/painel/eventos/{id}`, que é a mesma seção
+ * vista de perto. `/painel/eventos/novo` é a exceção: tem aba própria, e a
+ * comparação por prefixo acenderia as duas ao mesmo tempo.
+ */
+function abaAtiva(caminho: string, href: string): boolean {
+  if (href !== "/painel") return caminho === href;
+
+  return (
+    caminho === "/painel" ||
+    (caminho.startsWith("/painel/eventos/") && caminho !== "/painel/eventos/novo")
+  );
+}
+
 export function NavOrganizador() {
   const caminho = usePathname();
 
   return (
     <nav className="mx-auto flex max-w-[1120px] gap-[26px] px-6">
       {ABAS.map((aba) => {
-        const ativa = caminho === aba.href;
+        const ativa = abaAtiva(caminho, aba.href);
         return (
           <Link
             key={aba.href}

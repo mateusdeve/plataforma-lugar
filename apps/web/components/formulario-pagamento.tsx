@@ -2,36 +2,74 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ErroDaApi } from "@/lib/api";
+import { iniciarCheckout, simularPagamento } from "@/lib/dados";
 import { Campo } from "./campo";
 
 /*
   design/comprador/04-checkout.html — bloco de pagamento.
 
-  Nenhum dado de cartão passará pela aplicação de verdade (PRD §6.3): na fase 5
-  estes campos são substituídos pelo elemento hospedado do gateway, e o que
-  chega aqui é um token. Os inputs abaixo existem para a composição da tela.
+  ─────────────────────────────────────────────────────────────────────────────
+  OS CAMPOS DE CARTÃO SÃO DECORATIVOS, E CONTINUARÃO SENDO.
+
+  Nenhum dado de cartão passa por esta aplicação (PRD §6.3). Quando houver
+  gateway real, este bloco vira o elemento hospedado dele — um iframe do
+  provedor, onde o número é digitado no domínio DELE e nunca toca o nosso
+  JavaScript. É o que mantém o projeto fora do escopo de PCI-DSS.
+
+  Por ora os inputs existem para a composição da tela, e o botão faz o caminho
+  de verdade: abre a cobrança, o provedor confirma, os ingressos nascem.
+  ─────────────────────────────────────────────────────────────────────────────
 */
 
 export function FormularioPagamento({
+  reservaId,
   total,
-  codigoIngresso,
 }: {
+  reservaId: string;
   total: string;
-  codigoIngresso: string;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [processando, setProcessando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const podePagar = email.includes("@") && !processando;
 
-  function pagar(evento: React.FormEvent) {
+  async function pagar(evento: React.FormEvent) {
     evento.preventDefault();
     if (!podePagar) return;
 
     setProcessando(true);
-    // POST /api/reservas/{id}/checkout → o gateway responde e o webhook confirma.
-    setTimeout(() => router.push(`/ingressos/${codigoIngresso}`), 1400);
+    setErro(null);
+
+    try {
+      // 1. abre a cobrança no gateway
+      await iniciarCheckout(reservaId);
+
+      // 2. o provedor confirma. Sem gateway real, a API faz esse papel — ver
+      //    simularPagamento em lib/dados.ts.
+      await simularPagamento(reservaId);
+
+      // 3. os ingressos já existem quando esta linha roda: a emissão acontece
+      //    na mesma transação da confirmação.
+      router.push(`/reservas/${reservaId}/ingressos`);
+    } catch (falha) {
+      setProcessando(false);
+
+      // A reserva pode ter vencido enquanto a pessoa preenchia o formulário —
+      // é o caso que a tela 06 existe para explicar (PRD §9).
+      if (falha instanceof ErroDaApi && falha.chave === "reserva-expirada") {
+        router.push(`/reservas/${reservaId}/expirada`);
+        return;
+      }
+
+      setErro(
+        falha instanceof ErroDaApi
+          ? falha.message
+          : "Não foi possível concluir o pagamento. Tente de novo.",
+      );
+    }
   }
 
   return (
@@ -63,6 +101,12 @@ export function FormularioPagamento({
         <Campo rotulo="Validade" mono inputMode="numeric" placeholder="12/29" />
         <Campo rotulo="CVV" mono inputMode="numeric" placeholder="123" />
       </div>
+
+      {erro !== null && (
+        <p role="alert" className="text-[14px] font-semibold text-primaria">
+          {erro}
+        </p>
+      )}
 
       <button
         type="submit"

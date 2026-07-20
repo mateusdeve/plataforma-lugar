@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Lugar\Domain\Comum;
 
 use Lugar\Domain\Ingresso\CodigoIngresso;
+use Lugar\Domain\Ingresso\IngressoId;
+use Lugar\Domain\Pagamento\PagamentoId;
 use Lugar\Domain\Reserva\ReservaId;
 use Lugar\Domain\Usuario\UsuarioId;
 
@@ -20,6 +22,10 @@ interface GeradorDeIdentidade
     public function novaReservaId(): ReservaId;
 
     public function novoUsuarioId(): UsuarioId;
+
+    public function novoIngressoId(): IngressoId;
+
+    public function novoPagamentoId(): PagamentoId;
 
     /** RN-09: aleatório e não adivinhável. Nada de sequencial. */
     public function novoCodigoDeIngresso(): CodigoIngresso;

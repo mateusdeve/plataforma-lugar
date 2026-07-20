@@ -3,7 +3,7 @@
 Documento de handoff. O `PLAN.md` diz o que fazer e em que ordem; este diz
 **onde paramos**, o que está no ar e o que morde.
 
-**Última atualização:** julho de 2026, após publicar login e cadastro.
+**Última atualização:** julho de 2026, após a fase 7 — portaria.
 
 ---
 
@@ -41,13 +41,70 @@ O cabeçalho dele tem a lista atualizada. Hoje:
 | Vitrine, detalhe do evento | ✅ API |
 | Criar / consultar / cancelar reserva | ✅ API |
 | Login, cadastro, sessão | ✅ API |
-| Painel do organizador | ⬜ mock — falta `GET /api/organizador/eventos/{id}/painel` |
-| Portaria | ⬜ mock — falta `POST /api/ingressos/{codigo}/utilizar` |
-| Ingresso emitido | ⬜ mock — depende do gateway (fase 5) |
+| Painel do organizador | ✅ API |
+| Checkout, pagamento, ingresso emitido | ✅ API |
+| Portaria | ✅ API |
 
-**Próximo passo recomendado:** o painel do organizador. É onde o vínculo do
-ADR-004 aparece na tela — Rafael vê os eventos dele, e só os dele. O
-`EventoVoter` já existe e está testado; falta o endpoint e ligar a tela.
+**Não há mais nenhum mock.** `lib/dados.ts` é inteiramente API.
+
+Portões verdes: `composer check` sai 0 (87 testes), e o front passa em `tsc`,
+`eslint` e `next build`. O fluxo foi percorrido no navegador de ponta a ponta.
+
+### Fase 7 — o que existe
+
+- `GET /api/portaria/{eventoId}` (estado da porta), `GET /api/ingressos/{codigo}`
+  (confere sem consumir) e `POST /api/ingressos/{codigo}/utilizar`
+- `PortariaTest` — o critério de pronto: segunda leitura recusa **com o
+  horário**, e ingresso de outro evento recusa com o motivo certo. Mais a
+  escala: porteiro com `ROLE_PORTARIA` num evento onde não está escalado leva
+  403
+- **`CatracaConcorrenteTest`** — 8 processos lendo o MESMO código no mesmo
+  instante; exatamente 1 entra. Verificado que ele FALHA sem o lock: sem
+  `SELECT ... FOR UPDATE`, as 8 leituras passam e 8 pessoas entram com um
+  ingresso
+- O horário da recusa vai em **campo próprio** do problem+json (`utilizadoEm`),
+  não dentro da frase. `detail` é para humanos lerem; a tela consome o campo
+
+### O que mudou no front
+
+A tela da portaria guardava os códigos já lidos numa ref do React e recusava a
+segunda passada localmente. Funcionava com UMA catraca — e era exatamente o bug
+que a RN-10 existe para impedir: com dois leitores, cada um tem a sua memória.
+Agora nada é decidido no cliente.
+
+### Fase 5 — o que existe
+
+- `POST /api/reservas/{id}/checkout` abre a cobrança; `POST /api/webhooks/pagamento`
+  recebe a confirmação
+- `WebhookTest` — o critério de pronto: o mesmo webhook entregue **3 vezes**
+  emite ingresso uma só vez. Mais assinatura ausente, segredo errado, corpo
+  adulterado e replay fora da janela, cada um provando que nada é emitido
+- **Não há Stripe.** `GatewayDePagamento` é uma porta; o adaptador que existe é
+  o de demonstração, que roda sem chave nenhuma. Ligar o Stripe é escrever uma
+  classe e trocar uma linha em `services.yaml` — nenhum caso de uso muda
+- `POST /api/reservas/{id}/simular-pagamento` faz o papel do provedor em
+  dev/test e **responde 404 em produção**. Ela monta o webhook assinado e o
+  manda pela mesma verificação HMAC — o caminho exercitado localmente é o de
+  produção
+- E-mail por Messenger, despachado **dentro** da transação: com transporte
+  `doctrine://` isso é outbox de graça (ver `NotificadorPorMensageria`)
+
+### Desvios conscientes da fase 5
+
+- **Sem eventos de domínio.** Os cinco previstos em 1.5 nunca existiram.
+  `ConfirmarPagamento` orquestra tudo numa transação só — confirmar, vender
+  estoque, emitir e notificar. Emitir fora da transação abriria janela de
+  inconsistência
+- **A tela do ingresso é por RESERVA** (`/reservas/{id}/ingressos`), não por
+  código: RN-08 emite um ingresso por unidade, e uma tela por código esconderia
+  os outros
+- `GET /api/ingressos/{codigo}` continua sendo da fase 7, e não foi antecipado
+
+**Próximo passo recomendado:** fase 6.1 — criar e publicar evento. É o único
+buraco funcional que resta: o formulário `/painel/eventos/novo` ainda só faz
+`preventDefault`, e sem ele todo evento nasce pelo `lugar:popular`. Faltam
+`POST /api/eventos`, `POST /api/eventos/{id}/publicar` (RN-11 e RN-12) e a
+escala de operadores (6.4). Depois, a fase 8 inteira.
 
 ---
 
@@ -128,6 +185,41 @@ Desligado via `PATCH /v9/projects/{id}` com `ssoProtection: null`.
 **Alias de domínio na Vercel demora a propagar.** Depois de
 `vercel alias set`, rotas novas podem dar 404 por alguns minutos. Teste a URL
 do deploy direto antes de concluir que o build quebrou.
+
+**`buscarParaAtualizacao()` desanexa TODAS as entidades.** Ele chama
+`EntityManager::clear()` antes do `SELECT ... FOR UPDATE`, e tem de chamar —
+senão o Doctrine devolve a cópia do Identity Map e não trava nada. O efeito
+colateral é que qualquer entidade carregada ANTES vira detached, e `salvar()`
+nela agenda um INSERT em vez de um UPDATE. O sintoma é
+`duplicate key violates ..._pkey`, três camadas longe da causa. Custou meia
+hora na fase 5. **Regra: trave primeiro, carregue o resto depois.**
+
+**Teste roda em `lugar_test`, não em `lugar`.** `doctrine.yaml` tem
+`dbname_suffix: _test` em `when@test`. Migration nova precisa ser aplicada nos
+dois bancos, ou a suíte quebra com "column does not exist" enquanto o banco de
+desenvolvimento está correto:
+`docker compose exec -e APP_ENV=test api php bin/console doctrine:migrations:migrate`
+
+**Percorra o fluxo no navegador antes de dar por pronto.** O checkout estava
+quebrado desde que a reserva foi ligada: `lib/tipos.ts` declarava `eventoId` na
+reserva e a API nunca mandava, então a tela chamava `buscarEvento(undefined)` e
+caía em 404. Nenhum teste pegou — nenhum deles atravessa o front. Contrato
+declarado e contrato entregue são coisas diferentes.
+
+**Dado de demonstração precisa ser um estado possível.** O `lugar:popular`
+gravava `quantidade_vendida` no lote sem criar reserva nenhuma — ingresso
+vendido sem ninguém ter comprado, coisa que a operação real nunca produz. A
+vitrine não notava; o painel do organizador nasceu mostrando 436 vendidos e
+R$ 0,00 de receita. Não era bug do painel. Semente que não poderia existir em
+produção faz tela correta parecer quebrada, e esconde o inverso.
+
+**Se o Docker Desktop travar, o resíduo fica no volume.** O backend trava
+(aceita conexão no socket, `/backend/state` nunca responde) e matar a VM no
+meio do shutdown deixa um `postmaster.pid` vazio — o Postgres recusa subir com
+`bogus data in lock file`. Receita: matar `com.docker.backend` com `-9`, subir
+o Docker, remover o `postmaster.pid` do volume e `docker compose up -d
+--force-recreate`. Sem o `--force-recreate`, os containers antigos continuam
+morrendo sem escrever log nenhum.
 
 **Migrations rodam no boot, sob `pg_advisory_lock`** — ver
 `src/Infrastructure/Console/MigrarCommand.php`. Não tente movê-las para o

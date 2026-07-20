@@ -11,7 +11,17 @@ framework:
                     multiplier: 2
 
         routing:
-            # Vazio de propósito. Os eventos de domínio (ReservaCriada,
-            # ReservaConfirmada, ReservaExpirada, LoteEsgotado,
-            # IngressoUtilizado) chegam na fase 1; só os que disparam e-mail
-            # vão para `async`. O resto é síncrono no MVP — PRD §4.4.
+            # O e-mail de confirmação (PLAN 5.6). Vai para `async` porque
+            # ninguém que acabou de pagar deve esperar um SMTP responder: a
+            # requisição termina quando os ingressos existem, e o aviso sai
+            # depois, no worker.
+            #
+            # Despachado DENTRO da transação da confirmação, o que com
+            # transporte `doctrine://` dá outbox de graça — ver
+            # Infrastructure/Notificacao/NotificadorPorMensageria.
+            Lugar\Infrastructure\Notificacao\EnviarConfirmacaoDeCompra: async
+
+            # Os eventos de domínio da fase 1.5 (ReservaCriada, LoteEsgotado,
+            # IngressoUtilizado) nunca foram criados; a fase 5 orquestra no
+            # caso de uso, dentro de uma transação só. Se um barramento de
+            # eventos entrar depois, é aqui que ele aparece.

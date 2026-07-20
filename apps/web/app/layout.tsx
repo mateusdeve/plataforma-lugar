@@ -5,6 +5,7 @@ import {
   Spline_Sans_Mono,
 } from "next/font/google";
 import "./globals.css";
+import { ProvedorDeSessao } from "@/lib/sessao";
 
 const display = Bricolage_Grotesque({
   variable: "--fonte-display",
@@ -36,7 +37,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="pt-BR"
       className={`${display.variable} ${corpo.variable} ${mono.variable} h-full`}
     >
-      <body className="min-h-full font-sans antialiased">{children}</body>
+      {/*
+        A sessão envolve o app inteiro, e não cada grupo de rotas: o access
+        token vive em memória (lib/api.ts) e uma navegação entre grupos
+        desmontaria o provedor junto com ele. Aqui, uma restauração pelo cookie
+        de refresh serve comprador, organizador e portaria.
+      */}
+      <body className="min-h-full font-sans antialiased">
+        <ProvedorDeSessao>{children}</ProvedorDeSessao>
+      </body>
     </html>
   );
 }

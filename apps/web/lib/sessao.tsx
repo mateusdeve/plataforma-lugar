@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { api, ErroDaApi } from "./api";
+import { api, definirToken, ErroDaApi } from "./api";
 
 /*
   ─────────────────────────────────────────────────────────────────────────────
@@ -55,19 +55,14 @@ type Resposta = { accessToken: string; usuario: Usuario };
 
 const Contexto = createContext<Sessao | null>(null);
 
-/** Guardado fora do estado do React para o cliente HTTP poder lê-lo. */
-let accessToken: string | null = null;
-
-export function tokenAtual(): string | null {
-  return accessToken;
-}
-
 export function ProvedorDeSessao({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
 
+  // O token vai para o cliente HTTP, não para o estado do React: quem precisa
+  // dele é toda requisição, não a renderização. Ver o comentário em lib/api.ts.
   const aplicar = useCallback((r: Resposta) => {
-    accessToken = r.accessToken;
+    definirToken(r.accessToken);
     setUsuario(r.usuario);
   }, []);
 
@@ -111,7 +106,7 @@ export function ProvedorDeSessao({ children }: { children: React.ReactNode }) {
 
   const sair = useCallback(async () => {
     await api.post("/api/auth/logout").catch(() => undefined);
-    accessToken = null;
+    definirToken(null);
     setUsuario(null);
   }, []);
 

@@ -35,6 +35,19 @@ final readonly class RepositorioDoctrineDeLotes implements RepositorioDeLotes
      *    NÃO vai ao banco — nenhum SELECT, nenhum lock, e a corrida acontece
      *    com uma cópia velha do estoque. É o tipo de bug que não aparece em
      *    teste sequencial e destrói o invariante sob concorrência.
+     *
+     * ⚠️ CONTRATO PARA QUEM CHAMA: o `clear()` desanexa TODAS as entidades do
+     * EntityManager, não só o lote. Nenhuma entidade carregada antes desta
+     * chamada continua gerenciada depois dela.
+     *
+     * Segurar uma referência atravessando esta linha e depois chamar `salvar()`
+     * nela agenda um INSERT em vez de um UPDATE — a entidade está detached, e
+     * `persist()` numa detached com id atribuído insere. O sintoma é
+     * "duplicate key value violates ..._pkey", longe da causa.
+     *
+     * Regra prática: trave PRIMEIRO, carregue o resto DEPOIS. Foi assim que
+     * `ConfirmarPagamento` teve de ser reordenado, e é por isso que
+     * `CriarReserva` nunca sofreu — lá tudo nasce depois do lock.
      */
     public function buscarParaAtualizacao(LoteId $id): ?Lote
     {

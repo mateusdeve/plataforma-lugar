@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Lugar\UI\Http;
 
+use Lugar\Application\Pagamento\Excecao\ValorNaoConfere;
+use Lugar\Application\Portaria\CodigoDesconhecido;
 use Lugar\Domain\Comum\Excecao\ViolacaoDeRegraDeNegocio;
+use Lugar\Domain\Ingresso\Excecao\IngressoJaUtilizado;
 use Lugar\Domain\Lote\Excecao\EstoqueInsuficiente;
 use Lugar\Domain\Lote\Excecao\ForaDaJanelaDeVenda;
 use Lugar\Domain\Lote\Excecao\QuantidadeInvalida;
@@ -63,6 +66,7 @@ final readonly class TradutorDeExcecoes
                 titulo: $this->tituloDe($erro),
                 status: $this->statusDe($erro),
                 detalhe: $erro->getMessage(),
+                extras: $this->extrasDe($erro),
             ));
 
             return;
@@ -106,10 +110,17 @@ final readonly class TradutorDeExcecoes
     {
         return match (true) {
             $erro instanceof CredenciaisInvalidas => Response::HTTP_UNAUTHORIZED,
+            // Na porta, "não existe" e "existe e já entrou" pedem telas
+            // diferentes. O status carrega essa diferença junto com o `type`.
+            $erro instanceof CodigoDesconhecido => Response::HTTP_NOT_FOUND,
             $erro instanceof EmailJaCadastrado => Response::HTTP_CONFLICT,
             $erro instanceof EstoqueInsuficiente => Response::HTTP_CONFLICT,
             $erro instanceof QuantidadeInvalida,
-            $erro instanceof ForaDaJanelaDeVenda => Response::HTTP_UNPROCESSABLE_ENTITY,
+            $erro instanceof ForaDaJanelaDeVenda,
+            // Não é conflito de estado: o webhook chegou bem formado e
+            // assinado, e o VALOR é que não fecha. 422 diz isso; 409 sugeriria
+            // que tentar de novo mais tarde resolveria, e não resolve.
+            $erro instanceof ValorNaoConfere => Response::HTTP_UNPROCESSABLE_ENTITY,
             // Os demais conflitos de regra: reserva expirada, limite de
             // reservas ativas, ingresso já utilizado.
             default => Response::HTTP_CONFLICT,
@@ -123,14 +134,49 @@ final readonly class TradutorDeExcecoes
             'reserva-expirada' => 'O tempo acabou',
             'limite-reservas-ativas' => 'Você já tem reservas em aberto',
             'ingresso-ja-utilizado' => 'Ingresso já utilizado',
+            'ingresso-de-outro-evento' => 'Ingresso de outro evento',
+            'codigo-desconhecido' => 'Código não encontrado',
+            'valor-nao-confere' => 'O valor pago não confere',
             'credenciais-invalidas' => 'Não foi possível entrar',
             'email-ja-cadastrado' => 'E-mail já cadastrado',
             default => 'Não foi possível concluir',
         };
     }
 
-    private function problema(string $tipo, string $titulo, int $status, ?string $detalhe): JsonResponse
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     * DADO QUE A TELA PRECISA VAI EM CAMPO PRÓPRIO, NUNCA NA MENSAGEM.
+     *
+     * A recusa da RN-10 mostra o horário da primeira entrada. Ele está no
+     * `detail` ("Ingresso já utilizado às 19h42."), e seria tentador o front
+     * extrair de lá com uma expressão regular.
+     *
+     * Isso quebra na primeira vez que alguém melhorar a frase — ou traduzir a
+     * interface. O `detail` é para humanos lerem; a extensão abaixo é para a
+     * tela consumir. A RFC 7807 prevê membros próprios exatamente para isto.
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * @return array<string, mixed>
+     */
+    private function extrasDe(ViolacaoDeRegraDeNegocio $erro): array
     {
+        if ($erro instanceof IngressoJaUtilizado) {
+            return ['utilizadoEm' => $erro->utilizadoEm->format(\DATE_ATOM)];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<string, mixed> $extras
+     */
+    private function problema(
+        string $tipo,
+        string $titulo,
+        int $status,
+        ?string $detalhe,
+        array $extras = [],
+    ): JsonResponse {
         $corpo = [
             'type' => self::BASE.$tipo,
             'title' => $titulo,
@@ -140,6 +186,8 @@ final readonly class TradutorDeExcecoes
         if (null !== $detalhe) {
             $corpo['detail'] = $detalhe;
         }
+
+        $corpo += $extras;
 
         return new JsonResponse($corpo, $status, [
             'Content-Type' => 'application/problem+json',

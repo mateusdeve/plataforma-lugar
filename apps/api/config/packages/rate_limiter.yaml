@@ -12,3 +12,34 @@ framework:
             policy: sliding_window
             limit: 10
             interval: '1 minute'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Nos testes o contador vive em memória, e não no cache de arquivo.
+#
+# Com o pool padrão, o limite de 5 logins por minuto atravessa a suíte inteira:
+# o sexto login de qualquer teste leva 429, e QUAL teste quebra depende da
+# ordem em que o PHPUnit os executa. É a pior espécie de falha — vermelha hoje,
+# verde amanhã, sem ninguém ter tocado no código.
+#
+# Cada teste sobe um kernel novo, então o adaptador em memória começa zerado.
+# O limite continua valendo em dev e produção, que é onde ele protege alguém.
+# ─────────────────────────────────────────────────────────────────────────────
+when@test:
+    framework:
+        cache:
+            pools:
+                cache.limitador_em_memoria:
+                    adapter: cache.adapter.array
+
+        rate_limiter:
+            login:
+                policy: sliding_window
+                limit: 5
+                interval: '1 minute'
+                cache_pool: cache.limitador_em_memoria
+
+            reservas:
+                policy: sliding_window
+                limit: 10
+                interval: '1 minute'
+                cache_pool: cache.limitador_em_memoria

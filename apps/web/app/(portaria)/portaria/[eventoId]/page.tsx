@@ -1,5 +1,10 @@
-import { notFound } from "next/navigation";
-import { buscarEvento } from "@/lib/dados";
+"use client";
+
+import { use, useCallback } from "react";
+import { buscarEstadoDaPorta } from "@/lib/dados";
+import { useDoOrganizador } from "@/lib/organizador";
+import { useSessao } from "@/lib/sessao";
+import { AvisoDoOrganizador } from "@/components/aviso-do-organizador";
 import { LeitorDeIngresso } from "@/components/leitor-de-ingresso";
 
 /*
@@ -8,25 +13,42 @@ import { LeitorDeIngresso } from "@/components/leitor-de-ingresso";
   As três telas do handoff são um só componente com três estados — na porta,
   ninguém navega: lê, vê a resposta, lê a próxima.
 
-  Na fase 7 do PLAN.md o acesso passa pelo PortariaVoter: o operador só valida
-  ingresso de evento em que está escalado (tabela evento_operador). O eventoId
-  da URL não autoriza nada sozinho — quem decide é o servidor.
+  ─────────────────────────────────────────────────────────────────────────────
+  POR QUE A TELA CARREGA O ESTADO ANTES DE ACEITAR A PRIMEIRA LEITURA
+
+  `GET /api/portaria/{eventoId}` responde 403 se o operador não estiver
+  escalado neste evento (PortariaVoter). Chamar isso na abertura faz quem errou
+  a porta descobrir AGORA, e não com a primeira pessoa da fila na frente e a
+  resposta vermelha na tela.
+
+  E traz o contador com o total real do evento — não o que esta catraca contou.
+  Com dois leitores, cada um contando o seu, os dois números estariam errados.
+  ─────────────────────────────────────────────────────────────────────────────
 */
 
-export async function generateMetadata({
+export default function PaginaPortaria({
   params,
 }: PageProps<"/portaria/[eventoId]">) {
-  const { eventoId } = await params;
-  const evento = await buscarEvento(eventoId);
-  return { title: evento ? `Portaria · ${evento.titulo}` : "Portaria — lugar." };
-}
+  const { eventoId } = use(params);
+  const { ehPortaria, ehOrganizador } = useSessao();
 
-export default async function PaginaPortaria({
-  params,
-}: PageProps<"/portaria/[eventoId]">) {
-  const { eventoId } = await params;
-  const evento = await buscarEvento(eventoId);
-  if (!evento) notFound();
+  const estado = useDoOrganizador(
+    eventoId,
+    useCallback(() => buscarEstadoDaPorta(eventoId), [eventoId]),
+    // O organizador dono valida a própria porta sem se escalar — o
+    // PortariaVoter concede aos dois caminhos.
+    ehPortaria || ehOrganizador,
+  );
 
-  return <LeitorDeIngresso eventoTitulo={evento.titulo} entradasIniciais={127} />;
+  if (estado.situacao !== "pronto") {
+    return <AvisoDoOrganizador estado={estado} />;
+  }
+
+  return (
+    <LeitorDeIngresso
+      eventoId={estado.dados.eventoId}
+      eventoTitulo={estado.dados.eventoTitulo}
+      entradasIniciais={estado.dados.entradas}
+    />
+  );
 }

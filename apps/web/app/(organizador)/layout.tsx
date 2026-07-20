@@ -1,3 +1,4 @@
+import { IdentidadeOrganizador } from "@/components/identidade-organizador";
 import { Marca } from "@/components/marca";
 import { NavOrganizador } from "@/components/nav-organizador";
 
@@ -6,9 +7,16 @@ import { NavOrganizador } from "@/components/nav-organizador";
   Fundo mais quente que o do comprador e header em tinta: a mudança de
   temperatura sinaliza "você está na área de trabalho", não na loja.
 
-  Na fase 3 do PLAN.md este layout passa a exigir ROLE_ORGANIZADOR no
-  middleware. O nome no canto virá de GET /api/me, não de constante.
+  Este layout NÃO decide acesso, e não é esquecimento. Quem decide é o Symfony,
+  em toda requisição (PLAN.md §4): o que não vier autorizado não chega à tela,
+  independentemente do que o front mostre. As páginas tratam 401 e 403 da API
+  como estados de verdade — ver lib/organizador.ts. Esconder o menu seria
+  conveniência de UX, e conveniência de UX que passa por segurança vira a
+  desculpa para não checar no servidor.
 */
+
+export const metadata = { title: "Painel — lugar." };
+
 export default function LayoutOrganizador({
   children,
 }: {
@@ -22,12 +30,7 @@ export default function LayoutOrganizador({
           <span className="rounded-full border border-borda-tinta px-2.5 py-1 text-xs font-bold tracking-[1.5px] text-bronze uppercase">
             Organizador
           </span>
-          <div className="ml-auto flex items-center gap-2.5">
-            <span className="text-sm text-creme">Rafael M.</span>
-            <span className="grid size-[34px] place-items-center rounded-full bg-primaria text-[13px] font-bold text-off-white">
-              RM
-            </span>
-          </div>
+          <IdentidadeOrganizador />
         </div>
         <NavOrganizador />
       </header>

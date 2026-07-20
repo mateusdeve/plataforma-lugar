@@ -8,6 +8,7 @@ use Lugar\Application\Reserva\CancelarReserva;
 use Lugar\Application\Reserva\CriarReserva;
 use Lugar\Application\Reserva\CriarReservaComando;
 use Lugar\Application\Usuario\UsuarioAtual;
+use Lugar\Domain\Lote\RepositorioDeLotes;
 use Lugar\Domain\Reserva\RepositorioDeReservas;
 use Lugar\Domain\Reserva\Reserva;
 use Lugar\Domain\Reserva\ReservaId;
@@ -33,6 +34,7 @@ final readonly class ReservasController
         private CriarReserva $criar,
         private CancelarReserva $cancelar,
         private RepositorioDeReservas $reservas,
+        private RepositorioDeLotes $lotes,
         private UsuarioAtual $usuarioAtual,
         private Relogio $relogio,
         private RateLimiterFactoryInterface $reservasLimiter,
@@ -110,6 +112,25 @@ final readonly class ReservasController
 
         return [
             'id' => $reserva->id->valor,
+            /*
+              ═══════════════════════════════════════════════════════════════
+              A `Reserva` aponta para o LOTE, não para o evento (ADR-001): a
+              fronteira do agregado para aqui, e atravessá-la em memória seria
+              carregar meio sistema para responder um GET.
+
+              Mas a tela de checkout precisa do evento — título, data, prazo da
+              reserva. Sem este campo ela chamava `buscarEvento(undefined)` e
+              caía em 404: o contrato do front (`lib/tipos.ts`) declarava
+              `eventoId` e a API nunca o mandou. A tela ficou quebrada desde
+              que a reserva foi ligada, e não apareceu em teste nenhum porque
+              nenhum deles percorre o fluxo pelo navegador.
+
+              Resolver o lote aqui, na borda HTTP, é o lugar certo: montar a
+              resposta é trabalho de UI, e o domínio segue sem conhecer evento
+              a partir de reserva.
+              ═══════════════════════════════════════════════════════════════
+            */
+            'eventoId' => $this->lotes->buscar($reserva->loteId)?->eventoId->valor,
             'loteId' => $reserva->loteId->valor,
             'quantidade' => $reserva->quantidade,
             'status' => $reserva->status()->value,

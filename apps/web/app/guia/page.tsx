@@ -34,10 +34,12 @@ const PERFIS = [
         api: "GET /api/reservas/{id}",
       },
       {
-        href: "/ingressos/LGR-8F3K-92QX",
-        nome: "Ingresso emitido",
+        // A rota é da reserva, não de um código: RN-08 emite um ingresso por
+        // unidade, e a tela mostra todos de uma compra.
+        href: "/reservas/res-demo/ingressos",
+        nome: "Ingressos emitidos",
         origem: "05-confirmada.html",
-        api: "GET /api/ingressos/{codigo}",
+        api: "GET /api/reservas/{id}/ingressos",
       },
       {
         href: "/reservas/res-demo/expirada",
@@ -54,7 +56,13 @@ const PERFIS = [
     telas: [
       {
         href: "/painel",
-        nome: "Painel",
+        nome: "Meus eventos",
+        origem: "01-painel.html",
+        api: "GET /api/organizador/eventos",
+      },
+      {
+        href: "/painel/eventos/frontz-conf-2026",
+        nome: "Painel do evento",
         origem: "01-painel.html",
         api: "GET /api/organizador/eventos/{id}/painel",
       },
