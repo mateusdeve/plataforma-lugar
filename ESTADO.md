@@ -144,9 +144,10 @@ Agora nada é decidido no cliente.
 exige acesso que não está neste repositório:
 
 1. **8.3 — `pg_dump` diário para DigitalOcean Spaces** (retenção 30 dias) e
-   snapshot semanal do droplet. Precisa de credencial do Spaces e acesso ao
-   droplet.
-2. **8.4 — um restore de teste, feito de verdade.** Depende do 8.3.
+   snapshot semanal do droplet. O script e a instalação (3 passos no droplet)
+   estão prontos em **`ops/backup/`** — falta criar a Spaces Key e instalar.
+2. **8.4 — um restore de teste, feito de verdade.** O procedimento completo
+   está no `ops/backup/README.md`, com a tabela para registrar a data.
 3. **Rotação dos tokens** da seção de pendências de segurança abaixo.
 4. Opcional: religar o deploy automático (`DEPLOY_ATIVO` + webhook novo do
    EasyPanel — atenção: gerar o webhook invalida o token anterior).
