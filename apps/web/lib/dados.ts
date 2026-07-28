@@ -1,9 +1,11 @@
 import { api, ErroDaApi } from "./api";
 import type {
+  EventoCriado,
   EventoDetalhe,
   EventoDoOrganizador,
   EventoResumo,
   Ingresso,
+  Operador,
   PainelOrganizador,
   Reserva,
   ResultadoValidacao,
@@ -13,8 +15,8 @@ import type {
   ─────────────────────────────────────────────────────────────────────────────
   COSTURA COM A API
 
-  Este é o único arquivo que sabe de onde os dados vêm. Sobrou UM mock: a
-  validação na portaria, que depende dos endpoints da fase 7.
+  Este é o único arquivo que sabe de onde os dados vêm. Não há mais nenhum
+  mock: tudo abaixo é API.
 
     buscarEventos()        → GET  /api/eventos            ✔ ligado
     buscarEvento(id)       → GET  /api/eventos/{id}       ✔ ligado
@@ -23,10 +25,15 @@ import type {
     cancelarReserva(id)    → DELETE /api/reservas/{id}    ✔ ligado
     buscarMeusEventos()    → GET  /api/organizador/eventos          ✔ ligado
     buscarPainel(eventoId) → GET  /api/organizador/…/painel         ✔ ligado
+    criarEvento(...)       → POST /api/eventos                      ✔ ligado
+    publicarEvento(id)     → POST /api/eventos/{id}/publicar        ✔ ligado
+    buscarOperadores(id)   → GET  /api/organizador/…/operadores     ✔ ligado
+    escalarOperador(...)   → POST /api/organizador/…/operadores     ✔ ligado
+    retirarOperador(...)   → DELETE /api/organizador/…/operadores/… ✔ ligado
     iniciarCheckout(id)    → POST /api/reservas/{id}/checkout       ✔ ligado
     simularPagamento(id)   → POST /api/reservas/{id}/simular-…      ✔ ligado
     buscarIngressosDaReserva(id) → GET /api/reservas/{id}/ingressos ✔ ligado
-    validarIngresso(...)   → POST /api/ingressos/…        ○ fase 7
+    validarIngresso(...)   → POST /api/ingressos/…/utilizar         ✔ ligado
   ─────────────────────────────────────────────────────────────────────────────
 */
 
@@ -147,6 +154,62 @@ export async function buscarMeusEventos(): Promise<EventoDoOrganizador[]> {
 export async function buscarPainel(eventoId: string): Promise<PainelOrganizador> {
   return api.get<PainelOrganizador>(
     `/api/organizador/eventos/${eventoId}/painel`,
+  );
+}
+
+/**
+ * POST /api/eventos — o evento nasce em RASCUNHO, com os lotes juntos.
+ *
+ * `precoCentavos` é inteiro porque dinheiro é inteiro em todo o sistema: a
+ * conversão de "R$ 180" acontece uma vez, no formulário, e nenhuma camada
+ * daqui para baixo volta a ver ponto flutuante.
+ */
+export async function criarEvento(entrada: {
+  titulo: string;
+  local: string;
+  cidade: string;
+  iniciaEm: string;
+  descricao: string;
+  prazoReservaMinutos: number;
+  lotes: Array<{ nome: string; precoCentavos: number; quantidade: number }>;
+}): Promise<EventoCriado> {
+  return api.post<EventoCriado>("/api/eventos", entrada);
+}
+
+/** POST /api/eventos/{id}/publicar — RASCUNHO → PUBLICADO, vai à vitrine. */
+export async function publicarEvento(id: string): Promise<EventoCriado> {
+  return api.post<EventoCriado>(`/api/eventos/${id}/publicar`);
+}
+
+// ── escala da portaria (fase 6.4) ───────────────────────────────────────────
+
+export async function buscarOperadores(eventoId: string): Promise<Operador[]> {
+  const { itens } = await api.get<{ itens: Operador[] }>(
+    `/api/organizador/eventos/${eventoId}/operadores`,
+  );
+  return itens;
+}
+
+/**
+ * Escalar concede o papel de portaria e abre UMA porta: a deste evento.
+ * O e-mail precisa ter conta — 404 type=operador-desconhecido se não tiver.
+ */
+export async function escalarOperador(
+  eventoId: string,
+  email: string,
+): Promise<Operador> {
+  return api.post<Operador>(
+    `/api/organizador/eventos/${eventoId}/operadores`,
+    { email },
+  );
+}
+
+export async function retirarOperador(
+  eventoId: string,
+  usuarioId: string,
+): Promise<void> {
+  await api.remover(
+    `/api/organizador/eventos/${eventoId}/operadores/${usuarioId}`,
   );
 }
 

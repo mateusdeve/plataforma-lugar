@@ -35,4 +35,12 @@ interface ConsultaDoOrganizador
      * @return array<string, mixed>|null null quando o evento não existe
      */
     public function painel(string $eventoId): ?array;
+
+    /**
+     * Quem está escalado na porta deste evento (fase 6.4), com nome e e-mail
+     * — a tela da escala mostra pessoas, não ids.
+     *
+     * @return list<array{id: string, nome: string, email: string}>
+     */
+    public function operadores(string $eventoId): array;
 }

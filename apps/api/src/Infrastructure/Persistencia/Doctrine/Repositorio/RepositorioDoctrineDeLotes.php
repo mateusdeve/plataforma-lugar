@@ -6,6 +6,7 @@ namespace Lugar\Infrastructure\Persistencia\Doctrine\Repositorio;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\LockMode;
+use Lugar\Domain\Evento\EventoId;
 use Lugar\Domain\Lote\Lote;
 use Lugar\Domain\Lote\LoteId;
 use Lugar\Domain\Lote\RepositorioDeLotes;
@@ -60,5 +61,17 @@ final readonly class RepositorioDoctrineDeLotes implements RepositorioDeLotes
     {
         $this->em->persist($lote);
         $this->em->flush();
+    }
+
+    public function doEvento(EventoId $eventoId): array
+    {
+        /** @var list<Lote> */
+        return $this->em->createQueryBuilder()
+            ->select('l')
+            ->from(Lote::class, 'l')
+            ->where('l.eventoId = :evento')
+            ->setParameter('evento', $eventoId)
+            ->getQuery()
+            ->getResult();
     }
 }

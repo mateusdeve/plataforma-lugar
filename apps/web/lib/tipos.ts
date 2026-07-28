@@ -171,6 +171,20 @@ export type PainelOrganizador = {
   compradores: Comprador[];
 };
 
+/** Resposta de POST /api/eventos e de POST /api/eventos/{id}/publicar. */
+export type EventoCriado = {
+  id: string;
+  titulo: string;
+  status: EventoStatus;
+};
+
+/** Quem está escalado na porta de um evento (fase 6.4). */
+export type Operador = {
+  id: string;
+  nome: string;
+  email: string;
+};
+
 export type Comprador = {
   reservaId: string;
   /**

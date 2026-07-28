@@ -102,4 +102,22 @@ final readonly class RepositorioDoctrineDeReservas implements RepositorioDeReser
 
         return \is_string($id) ? $this->buscar(new ReservaId($id)) : null;
     }
+
+    public function contarConfirmadasNoEvento(EventoId $eventoId): int
+    {
+        $sql = <<<'SQL'
+            SELECT COUNT(*)
+              FROM reserva r
+              JOIN lote l ON l.id = r.lote_id
+             WHERE l.evento_id = :evento
+               AND r.status = :confirmada
+            SQL;
+
+        $resultado = $this->em->getConnection()->executeQuery($sql, [
+            'evento' => $eventoId->valor,
+            'confirmada' => StatusDaReserva::CONFIRMADA->value,
+        ])->fetchOne();
+
+        return is_numeric($resultado) ? (int) $resultado : 0;
+    }
 }

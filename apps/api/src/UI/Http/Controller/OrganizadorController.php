@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Lugar\UI\Http\Controller;
 
 use Lugar\Application\Consulta\ConsultaDoOrganizador;
+use Lugar\Application\Evento\EscalarOperador;
+use Lugar\Application\Evento\RetirarOperador;
 use Lugar\Application\Usuario\UsuarioAtual;
 use Lugar\Domain\Evento\Evento;
 use Lugar\Domain\Evento\EventoId;
 use Lugar\Domain\Evento\Permissao;
 use Lugar\Domain\Evento\RepositorioDeEventos;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -38,6 +42,8 @@ final readonly class OrganizadorController
         private RepositorioDeEventos $eventos,
         private UsuarioAtual $usuarioAtual,
         private AuthorizationCheckerInterface $autorizacao,
+        private EscalarOperador $escalar,
+        private RetirarOperador $retirar,
     ) {
     }
 
@@ -73,6 +79,49 @@ final readonly class OrganizadorController
         }
 
         return $this->semCache(new JsonResponse($painel));
+    }
+
+    // ── escala da portaria (fase 6.4) ────────────────────────────────────
+
+    #[Route('/api/organizador/eventos/{id}/operadores', name: 'organizador_operadores', methods: ['GET'])]
+    public function operadores(string $id): JsonResponse
+    {
+        $this->garantirAcessoA($id, Permissao::ESCALAR_PORTARIA);
+
+        return $this->semCache(new JsonResponse([
+            'itens' => $this->consulta->operadores($id),
+        ]));
+    }
+
+    #[Route('/api/organizador/eventos/{id}/operadores', name: 'organizador_escalar', methods: ['POST'])]
+    public function escalarOperador(string $id, Request $request): JsonResponse
+    {
+        $evento = $this->garantirAcessoA($id, Permissao::ESCALAR_PORTARIA);
+
+        $dados = json_decode($request->getContent(), true);
+        $email = \is_array($dados) ? ($dados['email'] ?? null) : null;
+
+        if (!\is_string($email) || '' === trim($email)) {
+            throw new \InvalidArgumentException('O campo "email" é obrigatório.');
+        }
+
+        $operador = ($this->escalar)($evento->id, trim($email));
+
+        return new JsonResponse([
+            'id' => $operador->id->valor,
+            'nome' => $operador->nome(),
+            'email' => $operador->email,
+        ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/api/organizador/eventos/{id}/operadores/{usuarioId}', name: 'organizador_retirar_operador', methods: ['DELETE'])]
+    public function retirarOperador(string $id, string $usuarioId): JsonResponse
+    {
+        $evento = $this->garantirAcessoA($id, Permissao::ESCALAR_PORTARIA);
+
+        ($this->retirar)($evento->id, $usuarioId);
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
     // ── apoio ────────────────────────────────────────────────────────────

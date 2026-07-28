@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Lugar\Infrastructure\Notificacao;
 
+use Lugar\Infrastructure\Observabilidade\ContextoDeCorrelacao;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
@@ -22,11 +24,20 @@ final readonly class EnviarConfirmacaoDeCompraHandler
     public function __construct(
         private MailerInterface $mailer,
         private string $remetente,
+        private ContextoDeCorrelacao $correlacao,
+        private LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(EnviarConfirmacaoDeCompra $mensagem): void
     {
+        // Fase 8.1: o worker retoma o id que veio DENTRO da mensagem, e todo
+        // log daqui em diante — inclusive os do Mailer e de um eventual retry
+        // — sai com o mesmo correlation_id da requisição que originou a compra.
+        if (null !== $mensagem->correlationId) {
+            $this->correlacao->definir($mensagem->correlationId);
+        }
+
         $email = (new Email())
             ->from($this->remetente)
             ->to($mensagem->compradorEmail)
@@ -34,6 +45,11 @@ final readonly class EnviarConfirmacaoDeCompraHandler
             ->text($this->corpo($mensagem));
 
         $this->mailer->send($email);
+
+        $this->logger->info('E-mail de confirmação enviado.', [
+            'reservaId' => $mensagem->reservaId,
+            'ingressos' => \count($mensagem->codigos),
+        ]);
     }
 
     private function corpo(EnviarConfirmacaoDeCompra $mensagem): string

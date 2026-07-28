@@ -9,6 +9,7 @@ import {
 } from "@/lib/formato";
 import { useDoOrganizador } from "@/lib/organizador";
 import { AvisoDoOrganizador } from "@/components/aviso-do-organizador";
+import { EscalaDaPortaria } from "@/components/escala-da-portaria";
 import { ExportarCsv } from "@/components/exportar-csv";
 import { Pill } from "@/components/pill";
 import type { Comprador, EventoStatus, ReservaStatus } from "@/lib/tipos";
@@ -268,6 +269,8 @@ export default function PaginaPainel({
             </div>
           )}
         </section>
+
+        <EscalaDaPortaria eventoId={id} />
       </div>
     </main>
   );

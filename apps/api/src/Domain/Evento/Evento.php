@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lugar\Domain\Evento;
 
+use Lugar\Domain\Evento\Excecao\EventoCanceladoNaoPodeSerPublicado;
 use Lugar\Domain\Evento\Excecao\EventoComVendasNaoPodeSerExcluido;
 use Lugar\Domain\Reserva\Reserva;
 use Lugar\Domain\Usuario\UsuarioId;
@@ -64,7 +65,7 @@ class Evento
     public function publicar(): void
     {
         if (StatusDoEvento::CANCELADO === $this->status) {
-            throw new \DomainException('Um evento cancelado não pode ser publicado.');
+            throw new EventoCanceladoNaoPodeSerPublicado('Um evento cancelado não pode ser publicado.');
         }
 
         $this->status = StatusDoEvento::PUBLICADO;

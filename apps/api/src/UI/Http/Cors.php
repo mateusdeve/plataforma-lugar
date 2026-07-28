@@ -52,7 +52,10 @@ final readonly class Cors
         // Sem isto o navegador não envia nem aceita o cookie de refresh.
         $cabecalhos->set('Access-Control-Allow-Credentials', 'true');
         $cabecalhos->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        $cabecalhos->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
+        $cabecalhos->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key, X-Correlation-Id');
+        // Sem expor, o front até MANDA o id mas não consegue LER o que voltou
+        // — e é a leitura que permite mostrá-lo num erro para a pessoa copiar.
+        $cabecalhos->set('Access-Control-Expose-Headers', 'X-Correlation-Id');
         $cabecalhos->set('Vary', 'Origin');
     }
 }

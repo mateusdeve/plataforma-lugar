@@ -23,6 +23,12 @@ final readonly class EnviarConfirmacaoDeCompra
         public string $compradorEmail,
         public array $codigos,
         public int $totalCentavos,
+        /**
+         * Fase 8.1: o id da requisição que originou a compra viaja DENTRO da
+         * mensagem — a fila é outro processo, e contexto não atravessa
+         * processos sozinho. Nulo para mensagens antigas já enfileiradas.
+         */
+        public ?string $correlationId = null,
     ) {
     }
 }

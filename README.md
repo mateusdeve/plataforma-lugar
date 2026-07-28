@@ -2,7 +2,7 @@
 
 Plataforma de venda de ingressos com **reserva temporária**: o comprador garante o lugar por 10 minutos enquanto paga. Se pagar, vira venda. Se não, o ingresso volta para o estoque.
 
-> **Estado:** em construção. Hoje existe o front completo e as decisões de arquitetura documentadas. A API Symfony ainda não foi escrita — ver [o que falta](#estado-atual).
+> **Estado:** funcional, no ar em **https://comprarbem.store**. Vitrine, reserva sob lock pessimista, pagamento com webhook idempotente, emissão de ingresso, painel do organizador, criação e publicação de evento, escala e validação na portaria — tudo de ponta a ponta, com 100 testes verdes. O que resta é infraestrutura de operação (backup testado, snapshot) — ver [ESTADO.md](ESTADO.md).
 
 ## O problema
 
@@ -82,35 +82,47 @@ impedir, e o teste o pega.
 
 ### O segundo teste que importa
 
-`tests/Dominio/Usuario/AutorizacaoTest.php` prova que um organizador
-**autenticado, com o papel correto**, não alcança o evento de outro
-organizador. Papel diz que a pessoa pode organizar; não diz *quais* eventos —
-quem responde isso é o vínculo (`evento.organizador_id` e `evento_operador`).
+`tests/Integracao/Organizador/PainelAutorizacaoTest.php` sobe o kernel HTTP
+inteiro e prova que um organizador **autenticado, com token válido e o papel
+correto**, recebe 403 ao pedir o painel do evento de outro. Papel diz que a
+pessoa pode organizar; não diz *quais* eventos — quem responde isso é o
+vínculo (`evento.organizador_id` e `evento_operador`).
 
 É a falha de autorização mais comum que existe, e passa despercebida porque a
 tela nunca oferece o link. A API não sabe o que a tela oferece.
 
+O mesmo padrão se repete em toda a fase 6 e 7: publicar, excluir, exportar e
+escalar têm caso negativo com token válido (`GestaoDeEventosTest`,
+`EscalaDeOperadoresTest`), e a catraca tem o seu próprio teste de concorrência
+— 8 leitores no mesmo código, exatamente 1 entra (`CatracaConcorrenteTest`).
+
+### 90 segundos de tour
+
+1. **O que o sistema faz:** este README até aqui.
+2. **O teste de concorrência:** [`ConcorrenciaTest.php`](apps/api/tests/Integracao/Reserva/ConcorrenciaTest.php) — o arquivo se explica.
+3. **Uma decisão de arquitetura:** [ADR-002](docs/adr/002-expiracao-preguicosa.md), duas páginas.
+4. **Rodar tudo:** `docker compose up -d`, `docker compose exec api php bin/console lugar:popular`, `cd apps/web && npm install && npm run dev` — e entrar com `rafael@lugar.demo` / `demonstracao123`.
+
 ## Estado atual
 
-**Pronto**
+**Pronto — as fases 0 a 7 do [PLAN.md](PLAN.md):**
 
-- Front completo — 9 rotas cobrindo as telas dos três perfis (comprador, organizador, portaria)
-- API: Symfony 8.1 nas quatro camadas, `/health` verificando banco e fila
-- **Domínio puro** — `Lote`, `Reserva`, `Ingresso`, `Evento` e Value Objects, sem framework. 45 testes em 13ms
-- **Lock pessimista e o teste de concorrência** — 10 processos disputando 1 lugar, exatamente 1 vence
-- Esquema com `CHECK (quantidade_vendida <= quantidade_total)` e índice parcial na query mais quente
-- **Autorização por vínculo** — `Usuario`, papéis acumuláveis, `EventoVoter` e `PortariaVoter`
-- Ambiente local completo em `docker compose`, e CI com os três portões
-- Contador de reserva derivado do servidor, não de timer local
-- Os dois 409 do sistema tratados como coisas diferentes, pelo campo `type` do RFC 7807
-- Tipos derivados do contrato da API, não das telas
-- PRD, plano de execução e 4 ADRs
+- **Domínio puro** — `Lote`, `Reserva`, `Ingresso`, `Evento` e Value Objects, sem framework; Deptrac quebra o CI se `Domain/` importar `Symfony\` ou `Doctrine\`
+- **Lock pessimista e os dois testes de concorrência** — 10 processos disputando 1 lugar na reserva; 8 leitores no mesmo ingresso na catraca. Exatamente 1 passa, nos dois
+- Esquema com `CHECK (quantidade_vendida <= quantidade_total)`, `UNIQUE` nas chaves de idempotência e índice parcial na query mais quente
+- **Identidade e autorização por vínculo** — Argon2id, JWT + refresh rotacionado em cookie `httpOnly`, `EventoVoter`/`PortariaVoter`, caso negativo testado em todo endpoint protegido
+- **Comprador** — vitrine, reserva com `Idempotency-Key`, checkout com countdown derivado do servidor, os dois 409 distinguidos por `type` (RFC 7807)
+- **Pagamento** — gateway por porta (adaptador de demonstração, sem chave), webhook HMAC verificado antes de qualquer processamento, idempotente por `UNIQUE` no banco, e-mail via outbox (`doctrine://` dentro da transação)
+- **Organizador** — criar/publicar/cancelar/excluir evento (RN-11, RN-12), painel com conversão reserva→venda e taxa de expiração (PRD §6.5), compradores + CSV, escala da portaria
+- **Portaria** — RN-10 com horário da primeira leitura em campo próprio do problem+json, recusa por evento errado, tela de leitura em tempo real
+- **Observabilidade** — logs JSON em produção com `correlation_id` atravessando front → API → worker
+- Deploy: imagem construída no CI → GHCR → EasyPanel; front na Vercel; migrations no boot sob `pg_advisory_lock`
 
-**Falta**
+**Falta — operação (fase 8 do PLAN):**
 
-- Endpoints de cadastro/login e as telas de autenticação no front
-- Ligar o front na API: reservas, pagamento, painel e portaria de verdade
-- Deploy: droplet, DNS e pipeline para o GHCR
+- `pg_dump` diário para DigitalOcean Spaces + um restore testado de verdade
+- Snapshot semanal do droplet
+- Rotação dos tokens listados em [ESTADO.md](ESTADO.md#pendências-de-segurança-do-dono-do-projeto)
 
 A ordem de construção está em [PLAN.md §5](PLAN.md). O front foi feito fora de ordem, de propósito, e o [§2.1](PLAN.md) explica a decisão e o risco assumido.
 

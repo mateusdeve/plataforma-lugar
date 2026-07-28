@@ -81,11 +81,20 @@ type Problema = {
 };
 
 async function requisitar<T>(caminho: string, init: RequestInit = {}): Promise<T> {
+  /*
+    Correlation id (PLAN 8.1): nasce AQUI, um por requisição, e viaja no
+    header. A API o devolve na resposta, o carimba em todo log dela e o passa
+    adiante na mensagem da fila — um erro reportado com este id na mão liga o
+    clique do navegador ao log do worker que mandou o e-mail.
+  */
+  const correlationId = crypto.randomUUID();
+
   const resposta = await fetch(`${BASE}${caminho}`, {
     ...init,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "X-Correlation-Id": correlationId,
       ...(accessToken === null ? {} : { Authorization: `Bearer ${accessToken}` }),
       ...(init.headers ?? {}),
     },

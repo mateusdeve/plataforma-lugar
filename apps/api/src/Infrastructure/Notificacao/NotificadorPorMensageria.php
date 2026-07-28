@@ -7,6 +7,7 @@ namespace Lugar\Infrastructure\Notificacao;
 use Lugar\Application\Notificacao\Notificador;
 use Lugar\Domain\Ingresso\Ingresso;
 use Lugar\Domain\Reserva\Reserva;
+use Lugar\Infrastructure\Observabilidade\ContextoDeCorrelacao;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -32,8 +33,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final readonly class NotificadorPorMensageria implements Notificador
 {
-    public function __construct(private MessageBusInterface $barramento)
-    {
+    public function __construct(
+        private MessageBusInterface $barramento,
+        private ContextoDeCorrelacao $correlacao,
+    ) {
     }
 
     public function confirmacaoDeCompra(Reserva $reserva, array $ingressos): void
@@ -46,6 +49,7 @@ final readonly class NotificadorPorMensageria implements Notificador
                 $ingressos,
             ),
             totalCentavos: $reserva->total->centavos,
+            correlationId: $this->correlacao->atual(),
         ));
     }
 }

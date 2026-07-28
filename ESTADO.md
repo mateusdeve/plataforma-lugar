@@ -3,7 +3,9 @@
 Documento de handoff. O `PLAN.md` diz o que fazer e em que ordem; este diz
 **onde paramos**, o que está no ar e o que morde.
 
-**Última atualização:** julho de 2026, após a fase 7 — portaria.
+**Última atualização:** julho de 2026, após a fase 6 completa (criar/publicar
+evento, escala de operadores) e a parte de código da fase 8 (logs JSON com
+correlation id, README e ADRs revisados).
 
 ---
 
@@ -42,13 +44,51 @@ O cabeçalho dele tem a lista atualizada. Hoje:
 | Criar / consultar / cancelar reserva | ✅ API |
 | Login, cadastro, sessão | ✅ API |
 | Painel do organizador | ✅ API |
+| Criar e publicar evento | ✅ API |
+| Escala da portaria (no painel) | ✅ API |
 | Checkout, pagamento, ingresso emitido | ✅ API |
 | Portaria | ✅ API |
 
 **Não há mais nenhum mock.** `lib/dados.ts` é inteiramente API.
 
-Portões verdes: `composer check` sai 0 (87 testes), e o front passa em `tsc`,
-`eslint` e `next build`. O fluxo foi percorrido no navegador de ponta a ponta.
+Portões verdes: `composer check` sai 0 (100 testes), e o front passa em `tsc`,
+`eslint` e `next build`. O fluxo foi percorrido no navegador de ponta a ponta,
+inclusive criar → publicar → escalar → excluir evento.
+
+### Fase 6 — o que existe (completa)
+
+- `POST /api/eventos` (nasce RASCUNHO, com lotes, numa transação),
+  `POST /api/eventos/{id}/publicar`, `POST /api/eventos/{id}/cancelar`,
+  `DELETE /api/eventos/{id}`
+- RN-12 no `ExcluirEvento`: contagem de vendas confirmadas e exclusão na
+  MESMA transação; com venda, 409 `type=evento-com-vendas`
+- RN-11 é invariante do próprio `Lote` (construtor + `redimensionarPara`);
+  o que `PublicarEvento` acrescenta é recusar evento sem lote
+  (`type=evento-sem-lote`)
+- Escala: `GET/POST/DELETE /api/organizador/eventos/{id}/operadores`, atrás
+  de `EVENTO_ESCALAR_PORTARIA` no `EventoVoter`. **Escalar concede
+  `ROLE_PORTARIA`** — decisão registrada na revisão do ADR-004; retirar da
+  escala não revoga o papel
+- `GestaoDeEventosTest` e `EscalaDeOperadoresTest` — cada rota com caso
+  negativo de token válido; a escala é provada pela CONSEQUÊNCIA (o porteiro
+  escalado abre `GET /api/portaria/{eventoId}` de um evento e leva 403 no
+  outro)
+- CSV de compradores continua no cliente (`exportar-csv.tsx`), sobre os
+  mesmos ≤200 do painel — decisão documentada no componente
+
+### Fase 8 — o que já existe (a parte de código)
+
+- **Logs JSON com `correlation_id` atravessando front → API → worker.**
+  O front gera um id por requisição (`lib/api.ts`), a API o aceita/devolve em
+  `X-Correlation-Id` (`Infrastructure/Observabilidade/`), o Monolog o carimba
+  em todo registro, e ele viaja DENTRO da mensagem da fila até o log do
+  e-mail. Verificado de ponta a ponta com uma compra simulada
+- Em produção o handler `main` é stream JSON direto no stderr (SEM
+  `fingers_crossed` — o raciocínio está comentado no `monolog.yaml`)
+- Métricas de negócio do PRD §6.5 (conversão reserva→venda, taxa de
+  expiração) já estavam no painel desde a 6.2
+- README reescrito (tour de 90 segundos, PRD §14) e ADR-004 com revisão
+  pós-construção
 
 ### Fase 7 — o que existe
 
@@ -100,11 +140,16 @@ Agora nada é decidido no cliente.
   os outros
 - `GET /api/ingressos/{codigo}` continua sendo da fase 7, e não foi antecipado
 
-**Próximo passo recomendado:** fase 6.1 — criar e publicar evento. É o único
-buraco funcional que resta: o formulário `/painel/eventos/novo` ainda só faz
-`preventDefault`, e sem ele todo evento nasce pelo `lugar:popular`. Faltam
-`POST /api/eventos`, `POST /api/eventos/{id}/publicar` (RN-11 e RN-12) e a
-escala de operadores (6.4). Depois, a fase 8 inteira.
+**Não há mais buraco funcional.** O que resta da fase 8 é operação, e tudo
+exige acesso que não está neste repositório:
+
+1. **8.3 — `pg_dump` diário para DigitalOcean Spaces** (retenção 30 dias) e
+   snapshot semanal do droplet. Precisa de credencial do Spaces e acesso ao
+   droplet.
+2. **8.4 — um restore de teste, feito de verdade.** Depende do 8.3.
+3. **Rotação dos tokens** da seção de pendências de segurança abaixo.
+4. Opcional: religar o deploy automático (`DEPLOY_ATIVO` + webhook novo do
+   EasyPanel — atenção: gerar o webhook invalida o token anterior).
 
 ---
 

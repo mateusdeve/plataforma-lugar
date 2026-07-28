@@ -42,6 +42,10 @@ security:
     access_control:
         # A vitrine é pública: quem ainda não tem conta precisa ver os eventos.
         - { path: ^/api/eventos, roles: PUBLIC_ACCESS, methods: [GET] }
+        # Tudo que ESCREVE em /api/eventos — criar, publicar, cancelar,
+        # excluir — é do organizador. A linha de cima já capturou os GET,
+        # então esta só alcança os outros métodos.
+        - { path: ^/api/eventos, roles: ROLE_ORGANIZADOR }
         - { path: ^/api/organizador, roles: ROLE_ORGANIZADOR }
 
         # ═══════════════════════════════════════════════════════════════════

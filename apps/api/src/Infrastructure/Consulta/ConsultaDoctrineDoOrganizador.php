@@ -128,6 +128,28 @@ final readonly class ConsultaDoctrineDoOrganizador implements ConsultaDoOrganiza
         ];
     }
 
+    public function operadores(string $eventoId): array
+    {
+        $sql = <<<'SQL'
+            SELECT u.id, u.nome, u.email
+              FROM evento_operador eo
+              JOIN usuario u ON u.id = eo.usuario_id
+             WHERE eo.evento_id = :evento
+             ORDER BY eo.criado_em
+            SQL;
+
+        return array_map(
+            fn (array $linha): array => [
+                'id' => $this->texto($linha['id']),
+                'nome' => $this->texto($linha['nome']),
+                'email' => $this->texto($linha['email']),
+            ],
+            $this->conexao
+                ->executeQuery($sql, ['evento' => $eventoId])
+                ->fetchAllAssociative(),
+        );
+    }
+
     // ── partes ───────────────────────────────────────────────────────────
 
     /**

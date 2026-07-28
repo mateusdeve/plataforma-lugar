@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lugar\UI\Http;
 
+use Lugar\Application\Evento\Excecao\OperadorDesconhecido;
 use Lugar\Application\Pagamento\Excecao\ValorNaoConfere;
 use Lugar\Application\Portaria\CodigoDesconhecido;
 use Lugar\Domain\Comum\Excecao\ViolacaoDeRegraDeNegocio;
@@ -113,6 +114,9 @@ final readonly class TradutorDeExcecoes
             // Na porta, "não existe" e "existe e já entrou" pedem telas
             // diferentes. O status carrega essa diferença junto com o `type`.
             $erro instanceof CodigoDesconhecido => Response::HTTP_NOT_FOUND,
+            // Mesmo raciocínio da porta: e-mail sem conta é "não existe",
+            // não um conflito de estado.
+            $erro instanceof OperadorDesconhecido => Response::HTTP_NOT_FOUND,
             $erro instanceof EmailJaCadastrado => Response::HTTP_CONFLICT,
             $erro instanceof EstoqueInsuficiente => Response::HTTP_CONFLICT,
             $erro instanceof QuantidadeInvalida,
@@ -139,6 +143,10 @@ final readonly class TradutorDeExcecoes
             'valor-nao-confere' => 'O valor pago não confere',
             'credenciais-invalidas' => 'Não foi possível entrar',
             'email-ja-cadastrado' => 'E-mail já cadastrado',
+            'evento-com-vendas' => 'Este evento já tem vendas',
+            'evento-sem-lote' => 'Evento sem lote não vai à vitrine',
+            'evento-cancelado' => 'Evento cancelado não volta',
+            'operador-desconhecido' => 'Conta não encontrada',
             default => 'Não foi possível concluir',
         };
     }
