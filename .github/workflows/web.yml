@@ -40,6 +40,13 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      # `PageProps` e os tipos de rota são GERADOS pelo Next em `.next/types`.
+      # Num checkout limpo eles não existem, e o `tsc` falharia acusando um
+      # tipo que o build criaria dois passos depois. Local não pega isso:
+      # sempre há um `.next/` de builds anteriores.
+      - name: Gerar tipos de rota
+        run: npx next typegen
+
       - name: Tipos
         run: npx tsc --noEmit
 

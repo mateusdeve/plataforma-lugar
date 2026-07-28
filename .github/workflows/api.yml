@@ -78,6 +78,12 @@ jobs:
       - name: Testes de domínio
         run: vendor/bin/phpunit --testsuite dominio
 
+      # As chaves .pem não são versionadas e, em produção, nascem no boot do
+      # container. O CI roda PHP puro — sem este passo, TODO login responde
+      # 500 e os 29 testes que autenticam falham juntos, longe da causa.
+      - name: Gerar chaves JWT
+        run: php bin/console lexik:jwt:generate-keypair --skip-if-exists
+
       # `integracao` precisa de Postgres de verdade: o teste de concorrência
       # dispara processos PHP paralelos disputando a mesma linha, e lock
       # pessimista é comportamento do banco, não do PHP. Não há como simular.
