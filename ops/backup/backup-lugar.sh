@@ -15,8 +15,14 @@
 set -euo pipefail
 
 # ── configuração ─────────────────────────────────────────────────────────────
-# O nome do container do banco no droplet (docker ps | grep db).
-CONTAINER="${LUGAR_DB_CONTAINER:-lugar_lugar-db.1}"
+# O container do banco é RESOLVIDO a cada execução, não fixado: no Swarm o
+# nome da task muda a todo redeploy (lugar_lugar-db.1.<id-da-task>), e um nome
+# congelado aqui viraria backup silenciosamente quebrado no primeiro deploy.
+CONTAINER="$(docker ps --filter name=lugar_lugar-db --format '{{.Names}}' | head -1)"
+if [ -z "$CONTAINER" ]; then
+  echo "ERRO: nenhum container lugar_lugar-db em execução." >&2
+  exit 1
+fi
 USUARIO="${LUGAR_DB_USER:-lugar}"
 BANCO="${LUGAR_DB_NAME:-lugar}"
 
