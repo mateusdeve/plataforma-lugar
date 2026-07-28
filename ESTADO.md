@@ -143,11 +143,14 @@ Agora nada é decidido no cliente.
 **Não há mais buraco funcional.** O que resta da fase 8 é operação, e tudo
 exige acesso que não está neste repositório:
 
-1. **8.3 — `pg_dump` diário para DigitalOcean Spaces** (retenção 30 dias) e
-   snapshot semanal do droplet. O script e a instalação (3 passos no droplet)
-   estão prontos em **`ops/backup/`** — falta criar a Spaces Key e instalar.
-2. **8.4 — um restore de teste, feito de verdade.** O procedimento completo
-   está no `ops/backup/README.md`, com a tabela para registrar a data.
+1. ~~8.3 — backup diário~~ **FEITO**: `pg_dump` diário às 03h17 no droplet,
+   versionado no repositório privado `mateusdeve/lugar-backups` via deploy
+   key exclusiva (custo zero; Spaces fica como upgrade documentado em
+   `ops/backup/`). Snapshot pago do droplet ficou de fora por decisão de
+   custo — o raciocínio está no `ops/backup/README.md`.
+2. ~~8.4 — restore de teste~~ **FEITO em 2026-07-28**: dump de produção
+   restaurado no compose local, aplicação subiu em cima, `/health` ok.
+   Registrado na tabela do `ops/backup/README.md`.
 3. **Rotação dos tokens** da seção de pendências de segurança abaixo.
 4. Opcional: religar o deploy automático (`DEPLOY_ATIVO` + webhook novo do
    EasyPanel — atenção: gerar o webhook invalida o token anterior).

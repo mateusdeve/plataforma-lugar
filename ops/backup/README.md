@@ -1,29 +1,22 @@
 # Backup e restore — PLAN.md 8.3 e 8.4
 
-O script ao lado faz o `pg_dump` diário do banco de produção para o
-DigitalOcean Spaces, com retenção de 30 dias. Este README é a instalação —
-três passos no droplet — e o **teste de restore**, que é o que transforma o
-backup em backup.
+O script ao lado faz o `pg_dump` diário do banco de produção e o versiona no
+repositório **privado** `mateusdeve/lugar-backups`, com retenção de 30 dias
+nos arquivos (o histórico do git fica como camada extra). Custo zero, adequado
+a esta escala: o dump comprimido tem poucos KB. Se um dia passar de alguns MB,
+o upgrade é DigitalOcean Spaces + s3cmd — o histórico deste diretório no git
+guarda a versão do script que fazia exatamente isso.
 
-## Instalação (uma vez, no droplet)
+## Como está montado (já instalado no droplet)
 
-```bash
-# 1. s3cmd (upload para o Spaces; nada é compilado — ADR-003)
-apt-get update && apt-get install -y s3cmd
-
-# 2. Credencial do Spaces (criar em DigitalOcean → API → Spaces Keys)
-s3cmd --configure   # endpoint: nyc3.digitaloceanspaces.com (ou a região do bucket)
-
-# 3. O script e o cron
-mkdir -p /opt/lugar && cp backup-lugar.sh /opt/lugar/ && chmod +x /opt/lugar/backup-lugar.sh
-crontab -e
-# 03h17 da manhã, todo dia. Horário quebrado de propósito: hora cheia é
-# quando todo mundo agenda tudo, inclusive quem disputa o mesmo droplet.
-# 17 3 * * * /opt/lugar/backup-lugar.sh >> /var/log/lugar-backup.log 2>&1
-```
-
-Confira o nome do container antes (`docker ps | grep db`) e ajuste
-`LUGAR_DB_CONTAINER` no crontab se for diferente do padrão do script.
+- `/opt/lugar/backup-lugar.sh` — o script;
+- `/root/.ssh/lugar_backup` — deploy key **exclusiva** do repositório de
+  backups, com escrita, registrada via `gh repo deploy-key add`. Ela não abre
+  mais nada: `IdentitiesOnly=yes` no script;
+- `/opt/lugar/backups/` — clone local onde os dumps são commitados;
+- cron: `17 3 * * *` (03h17 — horário quebrado de propósito: hora cheia é
+  quando todo mundo agenda tudo, inclusive quem disputa o mesmo droplet), com
+  log em `/var/log/lugar-backup.log`.
 
 ## O teste de restore (8.4)
 
@@ -32,11 +25,12 @@ Confira o nome do container antes (`docker ps | grep db`) e ajuste
 
 ```bash
 # 1. Baixar o dump mais recente
-s3cmd get "$(s3cmd ls s3://lugar-backups/ | sort | tail -1 | awk '{print $4}')" dump.sql.gz
+gh repo clone mateusdeve/lugar-backups /tmp/lugar-backups
+DUMP=$(/bin/ls -1 /tmp/lugar-backups/lugar-*.sql.gz | sort | tail -1)
 
 # 2. Restaurar num Postgres descartável (o do docker compose local serve)
 docker compose up -d banco
-gunzip -c dump.sql.gz | docker compose exec -T banco psql -U lugar -d lugar
+gunzip -c "$DUMP" | docker compose exec -T banco psql -q -U lugar -d lugar
 
 # 3. Provar que restaurou DADOS, não só esquema
 docker compose exec -T banco psql -U lugar -d lugar -c \
@@ -53,10 +47,13 @@ conta como nenhum.
 
 | data | quem | resultado |
 | ---- | ---- | --------- |
-| _pendente_ | | |
+| 2026-07-28 | Mateus + Claude | ✅ dump de produção restaurado no compose local; 4 eventos, 4 reservas, 3 ingressos; `/health` ok em cima do restore |
 
 ## Snapshot do droplet (semanal)
 
-Ativar em DigitalOcean → Droplet → **Backups** (semanal, gerenciado por
-eles). O snapshot cobre o desastre "perdi o droplet inteiro" — o dump cobre
-"perdi os dados". São coisas diferentes e as duas precisam existir.
+O item 8.3 também pede snapshot do droplet — é o recurso pago de Backups da
+DigitalOcean e ficou **de fora por decisão de custo**. O que ele cobriria
+("perdi o droplet inteiro") fica coberto de outro jeito: a infraestrutura é
+reconstruível do zero (imagem no GHCR, migrations no boot, EasyPanel) e os
+dados estão no dump diário. O tempo de reconstrução é maior que o de um
+snapshot; aceito conscientemente num projeto de demonstração.
