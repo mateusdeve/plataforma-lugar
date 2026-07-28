@@ -252,6 +252,14 @@ reserva e a API nunca mandava, então a tela chamava `buscarEvento(undefined)` e
 caía em 404. Nenhum teste pegou — nenhum deles atravessa o front. Contrato
 declarado e contrato entregue são coisas diferentes.
 
+**E percorra COMEÇANDO do clique, não da URL.** A segunda vez que a armadilha
+acima mordeu foi pior: o botão "Guardar meu lugar" ainda navegava para
+`/checkout/res-demo` — o mock da fase de design sobrevivendo DENTRO do
+`SeletorDeLotes` enquanto `lib/dados.ts` tinha `criarReserva()` pronta e
+testada. Todos os testes de checkout partiam de uma reserva criada por curl,
+então o único caminho que o usuário real usa era o único nunca exercitado. Só
+apareceu ao gravar o GIF do fluxo em produção.
+
 **Dado de demonstração precisa ser um estado possível.** O `lugar:popular`
 gravava `quantidade_vendida` no lote sem criar reserva nenhuma — ingresso
 vendido sem ninguém ter comprado, coisa que a operação real nunca produz. A

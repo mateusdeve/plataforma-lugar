@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ErroDaApi } from "@/lib/api";
+import { criarReserva } from "@/lib/dados";
+import { useSessao } from "@/lib/sessao";
 import type { EventoDetalhe, Lote } from "@/lib/tipos";
 import { formatarDinheiro } from "@/lib/formato";
 import { Botao } from "./botao";
+import { Campo } from "./campo";
 
 /** RN-04: no máximo 6 ingressos por reserva. */
 const MAXIMO_POR_RESERVA = 6;
@@ -44,6 +48,7 @@ export function SeletorDeLotes({
   loteEsgotadoAgora?: string;
 }) {
   const router = useRouter();
+  const { usuario } = useSessao();
 
   const lotes = evento.lotes.map((lote) =>
     lote.id === loteEsgotadoAgora
@@ -70,13 +75,55 @@ export function SeletorDeLotes({
       })
     : null;
 
-  function reservar() {
-    /*
-      Aqui entrará POST /api/reservas com header Idempotency-Key — um UUID
-      gerado neste clique, para que uma repetição em rede móvel devolva a
-      reserva original em vez de criar uma segunda (PRD §6.2).
-    */
-    router.push("/checkout/res-demo");
+  // Convidado informa o e-mail AQUI, não no pagamento: é a reserva que
+  // retém estoque em nome de alguém (RN-05 conta por e-mail), e é para ele
+  // que o ingresso vai. Logado, a API usa o e-mail da conta e ignora o campo.
+  const [email, setEmail] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const emailValido = usuario !== null || email.includes("@");
+  const podeReservar = selecionado !== null && emailValido && !enviando;
+
+  async function reservar() {
+    if (!podeReservar || selecionado === null) return;
+
+    setEnviando(true);
+    setErro(null);
+
+    try {
+      const reserva = await criarReserva({
+        loteId: selecionado.id,
+        quantidade: qtd,
+        compradorEmail: usuario?.email ?? email.trim(),
+        // Um UUID por CLIQUE: a retentativa em rede móvel repete a chave e
+        // recebe a MESMA reserva de volta, em vez de criar uma segunda
+        // (PRD §6.2).
+        chaveDeIdempotencia: crypto.randomUUID(),
+      });
+
+      router.push(`/checkout/${reserva.id}`);
+    } catch (falha) {
+      setEnviando(false);
+
+      if (falha instanceof ErroDaApi) {
+        // O 409 de estoque volta para ESTA tela, com o lote marcado como
+        // esgotado via query string — o servidor acabou de dizer que ele
+        // não existe mais, e a tela não mente (PRD §9).
+        if (falha.chave === "estoque-insuficiente") {
+          router.replace(
+            `/eventos/${evento.id}?erro=estoque-insuficiente&lote=${selecionado.id}`,
+          );
+          router.refresh();
+          return;
+        }
+
+        setErro(falha.message);
+        return;
+      }
+
+      setErro("Não foi possível guardar seu lugar. Tente de novo.");
+    }
   }
 
   return (
@@ -168,12 +215,36 @@ export function SeletorDeLotes({
         </div>
       </div>
 
+      {usuario === null && selecionado !== null && (
+        <div className="mt-5">
+          <Campo
+            rotulo="Seu e-mail — a reserva e o ingresso ficam nele"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="ana@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+      )}
+
+      {erro !== null && (
+        <p role="alert" className="mt-4 mb-0 text-[14px] font-semibold text-primaria">
+          {erro}
+        </p>
+      )}
+
       <Botao
         className="mt-6"
-        disabled={!selecionado}
+        disabled={!podeReservar}
         onClick={reservar}
       >
-        {selecionado ? `Guardar meu lugar — ${total}` : "Sem lugares neste momento"}
+        {enviando
+          ? "Guardando…"
+          : selecionado
+            ? `Guardar meu lugar — ${total}`
+            : "Sem lugares neste momento"}
       </Botao>
 
       <p className="mt-3 text-center text-[13.5px] text-texto-4">
