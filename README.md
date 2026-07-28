@@ -4,6 +4,10 @@ Plataforma de venda de ingressos com **reserva temporária**: o comprador garant
 
 > **Estado:** funcional, no ar em **https://comprarbem.store**. Vitrine, reserva sob lock pessimista, pagamento com webhook idempotente, emissão de ingresso, painel do organizador, criação e publicação de evento, escala e validação na portaria — tudo de ponta a ponta, com 100 testes verdes. O que resta é infraestrutura de operação (backup testado, snapshot) — ver [ESTADO.md](ESTADO.md).
 
+![O fluxo de compra, em produção: escolher o lote, guardar o lugar, pagar e receber os ingressos com QR](docs/media/fluxo-compra.gif)
+
+*O fluxo inteiro em produção, como convidado: lote → reserva com contador → pagamento → um QR por pessoa (RN-08).*
+
 ## O problema
 
 Venda de ingresso é um problema de **estoque sob concorrência**. Dois usuários clicam em "comprar" no último ingresso no mesmo milissegundo. Sem tratamento, o banco aceita os dois e o evento tem 501 pessoas para 500 lugares.
