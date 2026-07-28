@@ -28,6 +28,36 @@ Documentos completos: [PRD](PRD.md) (o quê e por quê), [PLAN](PLAN.md) (em que
 Entre com uma das contas em `/entrar` (senha `demonstracao123`):
 `rafael@lugar.demo` (organizador), `portaria@lugar.demo`, `ana@lugar.demo`.
 
+## Como as peças se encaixam
+
+```mermaid
+flowchart LR
+    subgraph navegador["Navegador"]
+        front["Next.js<br/>comprarbem.store<br/>(Vercel)"]
+    end
+
+    subgraph droplet["Droplet (EasyPanel · Docker Swarm)"]
+        api["Symfony<br/>api.comprarbem.store"]
+        pg[("Postgres 16<br/>sem porta pública")]
+        worker["Worker<br/>(Messenger)"]
+    end
+
+    front -- "JSON + JWT<br/>X-Correlation-Id" --> api
+    api -- "SELECT … FOR UPDATE<br/>no lote" --> pg
+    api -- "outbox: mensagem na<br/>MESMA transação" --> pg
+    worker -- "consome a fila<br/>(tabela no banco)" --> pg
+    worker -- "e-mail com os códigos" --> smtp["SMTP"]
+
+    ci["GitHub Actions"] -- "imagem pronta" --> ghcr["GHCR"]
+    ghcr -- "o droplet só puxa,<br/>nunca compila (ADR-003)" --> api
+```
+
+O caminho crítico é a seta do meio: toda reserva atravessa um `SELECT … FOR
+UPDATE` na linha do lote, e a disponibilidade é recalculada **dentro** do lock
+(ADR-001, ADR-002). O worker não tem fila externa: o transporte do Messenger é
+uma tabela no mesmo banco, o que faz o despacho dentro da transação virar
+outbox de graça.
+
 ## Stack
 
 | Camada | Tecnologia |

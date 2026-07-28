@@ -35,6 +35,7 @@ final readonly class PagamentosController
         private RepositorioDeReservas $reservas,
         private SimuladorDePagamento $simulador,
         private string $ambiente,
+        private bool $simulacaoPermitida,
         private LoggerInterface $logger,
     ) {
     }
@@ -145,22 +146,25 @@ final readonly class PagamentosController
 
     /**
      * ═══════════════════════════════════════════════════════════════════════
-     * SIMULAÇÃO DE PAGAMENTO — NUNCA EM PRODUÇÃO.
+     * SIMULAÇÃO DE PAGAMENTO — FECHADA POR PADRÃO FORA DE DEV/TEST.
      *
      * Sem gateway real configurado, nada dispara o webhook localmente e o
      * fluxo morre no checkout. Esta rota faz o papel do provedor: monta a
      * MESMA requisição assinada e a manda pela MESMA verificação HMAC.
      *
-     * O `404` fora de dev/test não é decoração. Em produção esta rota confirma
-     * pagamento sem dinheiro ter entrado — é ingresso de graça para quem
-     * descobrir a URL. Falhar fechado, e pelo ambiente, é a única postura
-     * aceitável para uma porta dessas.
+     * Num produto com dinheiro de verdade, esta rota em produção seria
+     * ingresso de graça para quem descobrisse a URL — por isso o padrão é
+     * falhar fechado, pelo ambiente. A exceção é explícita e única: ESTA
+     * produção é uma vitrine de demonstração, o gateway é o de demonstração
+     * e não existe valor a desviar. `PAGAMENTO_SIMULADO=true` (definida no
+     * painel, nunca no repositório) liga a rota lá — e sai no dia em que um
+     * gateway real entrar, junto com a troca no services.yaml.
      * ═══════════════════════════════════════════════════════════════════════
      */
     #[Route('/api/reservas/{id}/simular-pagamento', name: 'pagamentos_simular', methods: ['POST'])]
     public function simular(string $id, Request $request): JsonResponse
     {
-        if (!\in_array($this->ambiente, ['dev', 'test'], true)) {
+        if (!$this->simulacaoPermitida && !\in_array($this->ambiente, ['dev', 'test'], true)) {
             throw new NotFoundHttpException();
         }
 

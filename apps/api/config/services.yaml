@@ -53,6 +53,12 @@ services:
             # explicitamente deixa a decisão visível na configuração, em vez de
             # escondida num getenv() dentro do controller.
             $ambiente: '%kernel.environment%'
+            # A exceção CONSCIENTE: esta produção é uma vitrine de
+            # demonstração — o gateway é o GatewayDeDemonstracao e nenhum
+            # dinheiro existe para ser desviado. A flag liga a simulação lá,
+            # explicitamente, por variável de ambiente. No dia em que um
+            # gateway real for configurado, ela sai junto — o padrão é false.
+            $simulacaoPermitida: '%env(bool:PAGAMENTO_SIMULADO)%'
 
     Lugar\Infrastructure\Pagamento\AssinaturaHmac:
         arguments:
