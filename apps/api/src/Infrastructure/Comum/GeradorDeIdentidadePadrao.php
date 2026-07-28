@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Lugar\Infrastructure\Comum;
 
 use Lugar\Domain\Comum\GeradorDeIdentidade;
+use Lugar\Domain\Evento\EventoId;
 use Lugar\Domain\Ingresso\CodigoIngresso;
+use Lugar\Domain\Ingresso\IngressoId;
+use Lugar\Domain\Lote\LoteId;
+use Lugar\Domain\Pagamento\PagamentoId;
 use Lugar\Domain\Reserva\ReservaId;
 use Lugar\Domain\Usuario\UsuarioId;
 use Symfony\Component\Uid\Uuid;
@@ -17,6 +21,16 @@ final readonly class GeradorDeIdentidadePadrao implements GeradorDeIdentidade
      * sequência ficam próximos no índice B-tree. Com v4, cada inserção cai num
      * ponto aleatório da árvore e o índice fragmenta.
      */
+    public function novoEventoId(): EventoId
+    {
+        return new EventoId((string) Uuid::v7());
+    }
+
+    public function novoLoteId(): LoteId
+    {
+        return new LoteId((string) Uuid::v7());
+    }
+
     public function novaReservaId(): ReservaId
     {
         return new ReservaId((string) Uuid::v7());
@@ -25,6 +39,16 @@ final readonly class GeradorDeIdentidadePadrao implements GeradorDeIdentidade
     public function novoUsuarioId(): UsuarioId
     {
         return new UsuarioId((string) Uuid::v7());
+    }
+
+    public function novoIngressoId(): IngressoId
+    {
+        return new IngressoId((string) Uuid::v7());
+    }
+
+    public function novoPagamentoId(): PagamentoId
+    {
+        return new PagamentoId((string) Uuid::v7());
     }
 
     /**

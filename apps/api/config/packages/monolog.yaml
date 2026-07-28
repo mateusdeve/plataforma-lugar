@@ -1,0 +1,57 @@
+monolog:
+    channels:
+        - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+                channels: ["!event"]
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine", "!console"]
+
+when@test:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed
+                action_level: error
+                handler: nested
+                excluded_http_codes: [404, 405]
+                channels: ["!event"]
+            nested:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+
+when@prod:
+    monolog:
+        handlers:
+            # Fase 8.1: JSON direto no stderr, SEM fingers_crossed. O recipe
+            # padrão só solta os logs quando um erro acontece — bom para
+            # economizar volume, péssimo para correlação: a requisição que
+            # funcionou não deixa rastro, e "funcionou mas fez a coisa errada"
+            # é exatamente o caso que o correlation_id existe para investigar.
+            # O volume aqui é o de um droplet pequeno; stderr vira
+            # `docker logs`, e o campo extra.correlation_id liga cada linha ao
+            # front (X-Correlation-Id) e ao worker (dentro da mensagem).
+            main:
+                type: stream
+                path: php://stderr
+                level: info
+                channels: ["!deprecation", "!event"]
+                formatter: monolog.formatter.json
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine"]
+            deprecation:
+                type: stream
+                channels: [deprecation]
+                path: php://stderr
+                formatter: monolog.formatter.json

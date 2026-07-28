@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Lugar\Domain\Lote;
 
+use Lugar\Domain\Evento\EventoId;
+
 interface RepositorioDeLotes
 {
     public function buscar(LoteId $id): ?Lote;
@@ -21,4 +23,7 @@ interface RepositorioDeLotes
     public function buscarParaAtualizacao(LoteId $id): ?Lote;
 
     public function salvar(Lote $lote): void;
+
+    /** @return list<Lote> */
+    public function doEvento(EventoId $eventoId): array;
 }

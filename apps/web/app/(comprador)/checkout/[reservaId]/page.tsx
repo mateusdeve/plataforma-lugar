@@ -62,8 +62,8 @@ export default async function PaginaCheckout({
       </section>
 
       <FormularioPagamento
+        reservaId={reserva.id}
         total={formatarDinheiro(reserva.total)}
-        codigoIngresso="LGR-8F3K-92QX"
       />
 
       <p className="mt-[18px] text-center">

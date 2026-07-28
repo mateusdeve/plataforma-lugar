@@ -11,6 +11,7 @@ doctrine:
             reserva_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\ReservaIdType
             ingresso_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\IngressoIdType
             usuario_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\UsuarioIdType
+            pagamento_id: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\PagamentoIdType
             papeis: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\PapeisType
             codigo_ingresso: Lugar\Infrastructure\Persistencia\Doctrine\Tipo\CodigoIngressoType
 

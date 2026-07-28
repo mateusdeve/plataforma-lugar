@@ -39,4 +39,11 @@ interface RepositorioDeReservas
 
     /** Reserva já criada com esta chave de idempotência, se houver (PRD §6.2). */
     public function buscarPorChaveDeIdempotencia(string $chave): ?Reserva;
+
+    /**
+     * RN-12: quantas vendas confirmadas o evento tem. É o número que decide
+     * entre excluir e cancelar — qualquer valor acima de zero significa gente
+     * com ingresso na mão.
+     */
+    public function contarConfirmadasNoEvento(EventoId $eventoId): int;
 }

@@ -288,6 +288,8 @@ final class ConcorrenciaTest extends KernelTestCase
     private function limparBase(): void
     {
         $conexao = $this->conexao();
+        // `pagamento` referencia `reserva`: sai primeiro, ou a FK barra.
+        $conexao->executeStatement('DELETE FROM pagamento');
         $conexao->executeStatement('DELETE FROM ingresso');
         $conexao->executeStatement('DELETE FROM reserva');
         $conexao->executeStatement('DELETE FROM lote');

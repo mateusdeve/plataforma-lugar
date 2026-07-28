@@ -35,9 +35,11 @@ function textoDaRecusa(
 }
 
 export function LeitorDeIngresso({
+  eventoId,
   eventoTitulo,
   entradasIniciais,
 }: {
+  eventoId: string;
   eventoTitulo: string;
   entradasIniciais: number;
 }) {
@@ -47,20 +49,26 @@ export function LeitorDeIngresso({
   const [validando, setValidando] = useState(false);
 
   const campo = useRef<HTMLInputElement>(null);
-  /** Leituras desta sessão, para a segunda passada recusar com horário (RN-10). */
-  const jaLidos = useRef<Record<string, string>>({});
 
   async function validar(evento: React.FormEvent) {
     evento.preventDefault();
     if (!codigo.trim() || validando) return;
 
     setValidando(true);
-    const veredito = await validarIngresso(codigo, jaLidos.current);
 
-    if (veredito.entra) {
-      jaLidos.current[veredito.codigo] = new Date().toISOString();
-      setEntradas((n) => n + 1);
-    }
+    /*
+      Nenhuma decisão acontece aqui.
+
+      A versão anterior guardava os códigos já lidos numa ref e recusava a
+      segunda passada localmente. Funcionava com UMA catraca — e era o bug que
+      a RN-10 existe para impedir: com dois leitores, cada um tem a sua
+      memória, e o mesmo ingresso entra duas vezes.
+
+      Quem decide é o servidor, sob lock. Ver ValidarIngresso na API.
+    */
+    const veredito = await validarIngresso(codigo, eventoId);
+
+    if (veredito.entra) setEntradas((n) => n + 1);
 
     setResultado(veredito);
     setCodigo("");
@@ -126,19 +134,11 @@ export function LeitorDeIngresso({
           {validando ? "Validando…" : "Validar entrada"}
         </button>
 
-        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-[13px] text-texto-3">testar:</span>
-          {["LGR-7Q2M-84KD", "LGR-3XN9-51RT"].map((exemplo) => (
-            <button
-              key={exemplo}
-              type="button"
-              onClick={() => setCodigo(exemplo)}
-              className="rounded-full border border-trilha-escura px-3 py-[7px] font-mono text-[13px] text-creme transition-colors hover:border-bronze"
-            >
-              {exemplo}
-            </button>
-          ))}
-        </div>
+        {/*
+          Os botões de código de exemplo saíram: eles apontavam para códigos
+          fixos do mock. Agora os códigos são gerados na emissão, aleatórios
+          por RN-09 — um atalho fixo aqui apontaria para nada.
+        */}
       </form>
 
       {resultado && (

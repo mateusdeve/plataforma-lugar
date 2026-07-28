@@ -56,3 +56,17 @@ Consequência que vira regra de teste: para cada endpoint protegido, dois casos 
 O escopo cresce: uma fase inteira (fase 3) que o PRD não previa, mais telas de login e cadastro que o pacote de design não cobre e precisam ser desenhadas a partir dos tokens existentes.
 
 Em troca, o projeto ganha o que talvez seja seu segundo melhor argumento técnico, depois do teste de concorrência: um teste que prova que um organizador autenticado, com token válido e papel correto, recebe 403 ao tentar ler o painel de um evento alheio.
+
+## Revisão pós-construção (fase 8.6)
+
+Tudo acima foi construído como descrito. Uma decisão surgiu depois, na fase
+6.4, e fica registrada aqui por pertencer a este ADR:
+
+**`ROLE_PORTARIA` é concedido pela escala, não pelo cadastro.** O cadastro só
+distribui comprador e organizador; quando o organizador escala um e-mail no
+seu evento (`EscalarOperador`), o papel vem junto com o vínculo. Exigir o
+papel de antemão criaria um estado inalcançável — não existe balcão de
+administração para concedê-lo — e quem decide que alguém trabalha na porta é
+justamente o organizador que escala. Retirar da escala NÃO revoga o papel: a
+pessoa pode estar escalada em outras portas, e papel sem vínculo não abre
+nenhuma (o `PortariaVoter` exige os dois).

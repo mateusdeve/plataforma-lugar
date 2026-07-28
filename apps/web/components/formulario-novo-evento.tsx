@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ErroDaApi } from "@/lib/api";
+import { criarEvento, publicarEvento } from "@/lib/dados";
 import { Campo, CampoTexto } from "./campo";
-import { Toast, useToast } from "./toast";
 
 /*
   design/organizador/02-novo-evento.html
@@ -10,6 +12,11 @@ import { Toast, useToast } from "./toast";
   RN-01: o prazo da reserva é configurável por evento, entre 5 e 30 minutos.
   As opções abaixo são os valores do design — a API valida o intervalo, não a
   tela, mas oferecer só valores válidos evita um erro que ninguém precisa ver.
+
+  O botão faz DUAS chamadas: POST /api/eventos (nasce RASCUNHO) e depois
+  POST /api/eventos/{id}/publicar. Se a segunda falhar, o rascunho existe e a
+  mensagem diz isso — sumir com o trabalho da pessoa porque a publicação
+  falhou seria o pior dos desfechos.
 */
 const PRAZOS = [5, 10, 15, 30] as const;
 
@@ -23,13 +30,28 @@ const novaLinha = (nome: string, preco = "", lugares = ""): LinhaLote => ({
   lugares,
 });
 
+/** "180" → 18000 · "180,50" → 18050. Dinheiro vira inteiro AQUI, uma vez. */
+function paraCentavos(reais: string): number | null {
+  const numero = Number(reais.trim().replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(numero) || numero < 0) return null;
+  return Math.round(numero * 100);
+}
+
 export function FormularioNovoEvento() {
-  const toast = useToast();
+  const router = useRouter();
+
+  const [titulo, setTitulo] = useState("");
+  const [local, setLocal] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [dataHora, setDataHora] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [prazo, setPrazo] = useState<number>(10);
   const [lotes, setLotes] = useState<LinhaLote[]>([
     novaLinha("1º lote", "180", "200"),
     novaLinha("2º lote", "220", "310"),
   ]);
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   function atualizar(chave: number, campo: keyof LinhaLote, valor: string) {
     setLotes((atual) =>
@@ -37,10 +59,63 @@ export function FormularioNovoEvento() {
     );
   }
 
-  function publicar(evento: React.FormEvent) {
+  async function publicar(evento: React.FormEvent) {
     evento.preventDefault();
-    // POST /api/eventos, depois POST /api/eventos/{id}/publicar (fase 6).
-    toast.mostrar("Evento publicado — já aparece na vitrine.");
+    if (enviando) return;
+
+    const lotesValidos = lotes.map((l) => ({
+      nome: l.nome.trim(),
+      precoCentavos: paraCentavos(l.preco),
+      quantidade: Number.parseInt(l.lugares, 10),
+    }));
+
+    const invalido = lotesValidos.find(
+      (l) =>
+        l.nome === "" ||
+        l.precoCentavos === null ||
+        !Number.isInteger(l.quantidade) ||
+        l.quantidade < 1,
+    );
+
+    if (invalido !== undefined) {
+      setErro("Cada lote precisa de nome, preço e uma quantidade de lugares.");
+      return;
+    }
+
+    setEnviando(true);
+    setErro(null);
+
+    let id: string | null = null;
+
+    try {
+      const criado = await criarEvento({
+        titulo: titulo.trim(),
+        local: local.trim(),
+        cidade: cidade.trim(),
+        // datetime-local produz "2026-09-12T09:00", sem fuso: o instante é
+        // interpretado no fuso do navegador, que é onde o evento acontece.
+        iniciaEm: new Date(dataHora).toISOString(),
+        descricao: descricao.trim(),
+        prazoReservaMinutos: prazo,
+        lotes: lotesValidos.map((l) => ({
+          nome: l.nome,
+          precoCentavos: l.precoCentavos ?? 0,
+          quantidade: l.quantidade,
+        })),
+      });
+      id = criado.id;
+
+      await publicarEvento(id);
+      router.push(`/painel/eventos/${id}`);
+    } catch (e) {
+      setEnviando(false);
+      const mensagem = e instanceof ErroDaApi ? e.message : "Não foi possível salvar. Tente de novo.";
+      setErro(
+        id === null
+          ? mensagem
+          : `O evento foi salvo como rascunho, mas a publicação falhou: ${mensagem}`,
+      );
+    }
   }
 
   return (
@@ -52,17 +127,40 @@ export function FormularioNovoEvento() {
         rotulo="Título do evento"
         required
         placeholder="Ex.: Meetup de Engenharia — edição 12"
+        value={titulo}
+        onChange={(e) => setTitulo(e.target.value)}
       />
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3.5">
-        <Campo rotulo="Local" required placeholder="Teatro B32, São Paulo" />
-        <Campo rotulo="Data e hora" required placeholder="12/09/2026 · 09h" />
+        <Campo
+          rotulo="Local"
+          required
+          placeholder="Teatro B32"
+          value={local}
+          onChange={(e) => setLocal(e.target.value)}
+        />
+        <Campo
+          rotulo="Cidade"
+          required
+          placeholder="São Paulo"
+          value={cidade}
+          onChange={(e) => setCidade(e.target.value)}
+        />
+        <Campo
+          rotulo="Data e hora"
+          required
+          type="datetime-local"
+          value={dataHora}
+          onChange={(e) => setDataHora(e.target.value)}
+        />
       </div>
 
       <CampoTexto
         rotulo="Descrição"
         rows={3}
         placeholder="Conte o que faz esse evento valer o sábado das pessoas."
+        value={descricao}
+        onChange={(e) => setDescricao(e.target.value)}
       />
 
       <fieldset className="flex flex-col gap-1.5 border-0 p-0">
@@ -151,14 +249,19 @@ export function FormularioNovoEvento() {
         </button>
       </div>
 
+      {erro !== null && (
+        <p className="m-0 rounded-input border border-erro/40 bg-conflito-bg px-3.5 py-3 text-[14px] text-erro">
+          {erro}
+        </p>
+      )}
+
       <button
         type="submit"
-        className="mt-1 rounded-botao bg-primaria px-4 py-[17px] font-display text-[17px] font-bold text-off-white transition-colors hover:bg-primaria-hover"
+        disabled={enviando}
+        className="mt-1 rounded-botao bg-primaria px-4 py-[17px] font-display text-[17px] font-bold text-off-white transition-colors hover:bg-primaria-hover disabled:opacity-60"
       >
-        Publicar evento
+        {enviando ? "Publicando…" : "Publicar evento"}
       </button>
-
-      <Toast mensagem={toast.mensagem} aoFechar={toast.fechar} />
     </form>
   );
 }

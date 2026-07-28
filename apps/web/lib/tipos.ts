@@ -121,6 +121,20 @@ export type ResultadoValidacao =
     };
 
 // ── painel do organizador ───────────────────────────────────────────────────
+
+/** Item da lista de eventos do organizador — GET /api/organizador/eventos. */
+export type EventoDoOrganizador = {
+  id: string;
+  titulo: string;
+  local: string;
+  cidade: string;
+  iniciaEm: string;
+  status: EventoStatus;
+  vendidos: number;
+  capacidade: number;
+  receita: Dinheiro;
+};
+
 export type PainelOrganizador = {
   evento: {
     id: string;
@@ -136,7 +150,13 @@ export type PainelOrganizador = {
   reservadosAgora: number;
   disponiveis: number;
   receitaConfirmada: Dinheiro;
-  receitaLiquida: Dinheiro;
+  /**
+   * Quantas reservas viraram venda. Ocupa o lugar do "líquido de taxas" que o
+   * design previa: não existe modelo de taxa no PRD, e o gateway só entra na
+   * fase 5. Número inventado em painel de faturamento é pior que número
+   * ausente — este é apurado.
+   */
+  vendasConfirmadas: number;
   /** Métrica de negócio exigida pelo PRD §6.5. */
   conversao: { viraramVenda: number; expiraram: number };
   ocupacaoPorLote: Array<{
@@ -151,14 +171,36 @@ export type PainelOrganizador = {
   compradores: Comprador[];
 };
 
+/** Resposta de POST /api/eventos e de POST /api/eventos/{id}/publicar. */
+export type EventoCriado = {
+  id: string;
+  titulo: string;
+  status: EventoStatus;
+};
+
+/** Quem está escalado na porta de um evento (fase 6.4). */
+export type Operador = {
+  id: string;
+  nome: string;
+  email: string;
+};
+
 export type Comprador = {
   reservaId: string;
-  nome: string;
+  /**
+   * Nulo no checkout de convidado, que o ADR-004 manteve de propósito: sem
+   * conta não há nome, e o e-mail é a única identificação que existe.
+   */
+  nome: string | null;
   email: string;
   loteNome: string;
   quantidade: number;
   status: ReservaStatus;
-  /** Só para status PENDENTE — quanto falta expirar, formato mm:ss. */
+  /**
+   * Instante ISO, só para status PENDENTE. Vem cru e não como "07:41": texto
+   * pronto envelhece entre o servidor e a tela, e quem sabe que horas são
+   * agora é quem está renderizando.
+   */
   expiraEm: string | null;
 };
 

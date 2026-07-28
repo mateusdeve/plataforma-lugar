@@ -5,18 +5,28 @@ import type { Comprador } from "@/lib/tipos";
 import { Toast, useToast } from "./toast";
 
 /*
-  Exportação de compradores. Hoje monta o CSV no cliente a partir da lista já
-  carregada; na fase 6 do PLAN.md passa a chamar a API, que é quem tem a lista
-  completa — a tela mostra só uma página dela.
+  Exportação de compradores, montada no cliente a partir da lista já carregada.
+
+  A API devolve no máximo 200 reservas por painel, então o CSV cobre o que a
+  tela cobre — e não mais. Quando um evento passar disso, a exportação precisa
+  virar uma rota própria: um arquivo silenciosamente truncado é pior que um
+  botão que ainda não existe.
 */
 
 const COLUNAS = ["nome", "email", "lote", "quantidade", "status"] as const;
 
 function paraCsv(compradores: Comprador[]): string {
+  /*
+    As aspas não são enfeite: um nome com vírgula ("Souza, Ana") viraria duas
+    colunas, e todas as linhas seguintes ficariam deslocadas. Aspas internas
+    são dobradas, que é como o RFC 4180 as escapa.
+  */
   const escapar = (valor: string | number) => `"${String(valor).replace(/"/g, '""')}"`;
 
   const linhas = compradores.map((c) =>
-    [c.nome, c.email, c.loteNome, c.quantidade, c.status].map(escapar).join(","),
+    [c.nome ?? "", c.email, c.loteNome, c.quantidade, c.status]
+      .map(escapar)
+      .join(","),
   );
 
   return [COLUNAS.join(","), ...linhas].join("\n");
